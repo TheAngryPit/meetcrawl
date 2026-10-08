@@ -9,7 +9,7 @@ type Kind string
 const (
 	KindOpenWhispr  Kind = "openwhispr"
 	KindGMeetGemini Kind = "gmeet-gemini"
-	KindExportFile Kind = "export-file"
+	KindExportFile  Kind = "export-file"
 )
 
 func (k Kind) String() string { return string(k) }

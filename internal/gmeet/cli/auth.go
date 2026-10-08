@@ -16,6 +16,7 @@ func (a App) runAuth(ctx context.Context, w io.Writer, flags GlobalFlags, args [
 		return err
 	}
 	clientSrc, _ := flagValue(args, "--client")
+	manual := hasFlag(args, "--manual")
 	if clientSrc != "" {
 		if err := oauth.InstallClient(clientSrc, cfg.OAuthClientPath); err != nil {
 			return err
@@ -38,8 +39,9 @@ func (a App) runAuth(ctx context.Context, w io.Writer, flags GlobalFlags, args [
 		loginOut = io.MultiWriter(w, stderr)
 	}
 	result, err := oauth.Login(ctx, oauthCfg, store, oauth.LoginOptions{
-		Out: loginOut,
-		In:  os.Stdin,
+		Manual: manual,
+		Out:    loginOut,
+		In:     os.Stdin,
 	})
 	if err != nil {
 		return err

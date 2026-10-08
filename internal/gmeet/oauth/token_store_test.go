@@ -1,6 +1,7 @@
 package oauth_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,6 +10,21 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/gmeet/oauth"
 	"golang.org/x/oauth2"
 )
+
+type memKeyring map[string]string
+
+func (m memKeyring) Get(service, account string) (string, error) {
+	v, ok := m[service+"/"+account]
+	if !ok {
+		return "", fmt.Errorf("not found")
+	}
+	return v, nil
+}
+
+func (m memKeyring) Set(service, account, password string) error {
+	m[service+"/"+account] = password
+	return nil
+}
 
 func TestTokenStoreFileRoundTrip(t *testing.T) {
 	t.Parallel()
@@ -40,6 +56,31 @@ func TestTokenStoreFileRoundTrip(t *testing.T) {
 	}
 	if loaded.AccessToken != tok.AccessToken {
 		t.Fatalf("AccessToken = %q", loaded.AccessToken)
+	}
+}
+
+func TestTokenStoreKeychainSuccessRemovesFile(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "token.json")
+	if err := os.WriteFile(path, []byte(`{"access_token":"stale"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	kr := memKeyring{}
+	store := oauth.TokenStore{FilePath: path, KeyringEnabled: true, Keyring: kr}
+	tok := &oauth2.Token{AccessToken: "fresh", TokenType: "Bearer"}
+	storage, err := store.Save(tok)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if storage != "keychain" {
+		t.Fatalf("storage = %q, want keychain", storage)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("token file still present after keychain save: %v", err)
+	}
+	if store.StorageInUse() != "keychain" {
+		t.Fatalf("StorageInUse = %q", store.StorageInUse())
 	}
 }
 

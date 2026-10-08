@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/zalando/go-keyring"
 	"golang.org/x/oauth2"
 )
 
@@ -19,6 +18,7 @@ const keyringAccount = "oauth-token"
 type TokenStore struct {
 	FilePath       string
 	KeyringEnabled bool
+	Keyring        KeyringBackend
 }
 
 func DefaultTokenStore(filePath string) TokenStore {
@@ -32,7 +32,7 @@ func (s TokenStore) HasToken() bool {
 
 func (s TokenStore) Load() (*oauth2.Token, error) {
 	if s.KeyringEnabled {
-		if raw, err := keyring.Get(keyringService, keyringAccount); err == nil && strings.TrimSpace(raw) != "" {
+		if raw, err := s.keyring().Get(keyringService, keyringAccount); err == nil && strings.TrimSpace(raw) != "" {
 			var tok oauth2.Token
 			if err := json.Unmarshal([]byte(raw), &tok); err != nil {
 				return nil, fmt.Errorf("parse keychain token: %w", err)
@@ -65,16 +65,15 @@ func (s TokenStore) Save(tok *oauth2.Token) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	storage := "file"
 	if s.KeyringEnabled {
-		if err := keyring.Set(keyringService, keyringAccount, string(payload)); err == nil {
-			storage = "keychain"
+		if err := s.keyring().Set(keyringService, keyringAccount, string(payload)); err == nil {
+			if err := s.removeTokenFile(); err != nil {
+				return "", err
+			}
+			return "keychain", nil
 		}
 	}
 	if strings.TrimSpace(s.FilePath) == "" {
-		if storage == "keychain" {
-			return storage, nil
-		}
 		return "", fmt.Errorf("token_path is required when keychain is unavailable")
 	}
 	if err := os.MkdirAll(filepath.Dir(s.FilePath), 0o700); err != nil {
@@ -83,7 +82,49 @@ func (s TokenStore) Save(tok *oauth2.Token) (string, error) {
 	if err := os.WriteFile(s.FilePath, payload, 0o600); err != nil {
 		return "", fmt.Errorf("write oauth token: %w", err)
 	}
-	return storage, nil
+	return "file", nil
+}
+
+func (s TokenStore) removeTokenFile() error {
+	if strings.TrimSpace(s.FilePath) == "" {
+		return nil
+	}
+	err := os.Remove(s.FilePath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove stale oauth token file: %w", err)
+	}
+	return nil
+}
+
+// StorageInUse reports where a token would be loaded from ("keychain", "file", or "").
+func (s TokenStore) StorageInUse() string {
+	if s.KeyringEnabled {
+		if raw, err := s.keyring().Get(keyringService, keyringAccount); err == nil && strings.TrimSpace(raw) != "" {
+			return "keychain"
+		}
+	}
+	if strings.TrimSpace(s.FilePath) == "" {
+		return ""
+	}
+	if _, err := os.Stat(s.FilePath); err != nil {
+		return ""
+	}
+	if _, err := s.loadFromFile(); err == nil {
+		return "file"
+	}
+	return ""
+}
+
+func (s TokenStore) loadFromFile() (*oauth2.Token, error) {
+	data, err := os.ReadFile(s.FilePath)
+	if err != nil {
+		return nil, err
+	}
+	var tok oauth2.Token
+	if err := json.Unmarshal(data, &tok); err != nil {
+		return nil, err
+	}
+	return &tok, nil
 }
 
 func (s TokenStore) FileState() (exists bool, bytes int64) {
@@ -101,6 +142,6 @@ func (s TokenStore) KeychainPresent() bool {
 	if !s.KeyringEnabled {
 		return false
 	}
-	_, err := keyring.Get(keyringService, keyringAccount)
+	_, err := s.keyring().Get(keyringService, keyringAccount)
 	return err == nil
 }

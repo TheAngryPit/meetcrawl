@@ -10,6 +10,7 @@ import (
 
 	"github.com/TheAngryPit/meetcrawl/internal/index/build"
 	"github.com/TheAngryPit/meetcrawl/internal/index/reads"
+	mcpserver "github.com/TheAngryPit/meetcrawl/internal/mcp"
 	"github.com/TheAngryPit/meetcrawl/internal/meetcrawl/buildinfo"
 	mconfig "github.com/TheAngryPit/meetcrawl/internal/meetcrawl/config"
 	"github.com/TheAngryPit/meetcrawl/internal/meetcrawl/doctor"
@@ -28,6 +29,7 @@ Commands:
   index      Rebuild meetcrawl.db from crawler archives (read-only)
   status     Show index status
   search     Full-text search indexed meeting content
+  mcp        Read-only MCP server on stdio
 
 Global flags:
   --json       JSON output (place before the command)
@@ -65,6 +67,8 @@ func (a App) Run(ctx context.Context, args []string) error {
 		return a.runStatus(ctx, stdout, flags)
 	case "search":
 		return a.runSearch(ctx, stdout, flags, cmdArgs)
+	case "mcp":
+		return mcpserver.Run(ctx, mcpserver.Options{ConfigPath: flags.ConfigPath})
 	case "help":
 		_, err := io.WriteString(stdout, usage)
 		return err

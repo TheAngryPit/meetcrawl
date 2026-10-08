@@ -18,6 +18,10 @@ const (
 	ConfigEnv = "MEETCRAWL_CONFIG"
 )
 
+type MCPConfig struct {
+	RestrictedAllowlist []string `toml:"restricted_allowlist" json:"restricted_allowlist"`
+}
+
 type Config struct {
 	Version      int            `toml:"version" json:"version"`
 	DBPath       string         `toml:"db_path" json:"db_path"`
@@ -25,6 +29,7 @@ type Config struct {
 	WhispcrawlDB string         `toml:"whispcrawl_db" json:"whispcrawl_db"`
 	GmeetcrawlDB string         `toml:"gmeetcrawl_db" json:"gmeetcrawl_db"`
 	Privacy      privacy.Config `toml:"privacy" json:"privacy"`
+	MCP          MCPConfig      `toml:"mcp" json:"mcp"`
 }
 
 func App() ckconfig.App {

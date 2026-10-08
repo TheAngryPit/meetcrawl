@@ -1,0 +1,11 @@
+{
+  "version": 99,
+  "drive_files": [
+    {
+      "id": "bad-layout",
+      "name": "Broken layout",
+      "exportPath": "exports/missing.txt"
+    }
+  ],
+  "calendar_events": []
+}

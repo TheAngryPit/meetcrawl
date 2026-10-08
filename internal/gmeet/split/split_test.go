@@ -14,7 +14,7 @@ func TestParseMarkdownEmojiHeadingsWin(t *testing.T) {
 ### Resumo
 Emoji markdown notes body.
 
-# **🎙️ Transcrição**
+# **📖 Transcrição**
 
 ### 14:05:00
 Speaker Alpha: emoji markdown transcript.
@@ -68,7 +68,7 @@ Speaker Alpha: flarn dialogue.
 
 func TestParsePlainBothTabsCRLF(t *testing.T) {
 	t.Parallel()
-	plain := "\ufeff📝 Observações\r\n\r\n2026/01/15\r\nReunião em 15 de jan. de 2026\r\nResumo\r\nBlorp\r\n\r\n🎙️ Transcrição\r\n\r\nReunião em 15 de jan. de 2026\r\n14:05:00\r\nSpeaker Alpha: flarn\r\n"
+	plain := "\ufeff📝 Observações\r\n\r\n2026/01/15\r\nReunião em 15 de jan. de 2026\r\nResumo\r\nBlorp\r\n\r\n📖 Transcrição\r\n\r\nReunião em 15 de jan. de 2026\r\n14:05:00\r\nSpeaker Alpha: flarn\r\n"
 	res, err := split.Parse("", plain)
 	if err != nil {
 		t.Fatalf("Parse() = %v", err)

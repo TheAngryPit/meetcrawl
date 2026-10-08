@@ -23,6 +23,7 @@ Usage:
 
 Commands:
   init       Create config and data directories
+  auth       OAuth login (optional --client <path>, --manual fallback)
   doctor     Check Drive/Calendar auth or fixture paths
   sync       Ingest Meet/Gemini Google Docs into the local archive
   status     Show archive status
@@ -58,6 +59,8 @@ func (a App) Run(ctx context.Context, args []string) error {
 	switch cmd {
 	case "init":
 		return a.runInit(stdout, flags)
+	case "auth":
+		return a.runAuth(ctx, stdout, flags, cmdArgs)
 	case "doctor":
 		return a.runDoctor(ctx, stdout, flags, cmdArgs)
 	case "metadata":
@@ -138,7 +141,11 @@ func (a App) runDoctor(ctx context.Context, w io.Writer, flags GlobalFlags, args
 		printKV(w, "fixture_manifest", report.Fixture.Exists)
 	} else {
 		printKV(w, "oauth_client", report.OAuthClientFile.Exists)
-		printKV(w, "token", report.TokenFile.Exists)
+		printKV(w, "token_file", report.TokenFile.Exists)
+		printKV(w, "token_keychain", report.TokenKeychain)
+		if report.TokenStorage != "" {
+			printKV(w, "token_storage", report.TokenStorage)
+		}
 	}
 	return nil
 }

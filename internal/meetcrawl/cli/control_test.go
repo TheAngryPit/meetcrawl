@@ -98,6 +98,7 @@ func runMetadataApp(t *testing.T) []byte {
 func moduleRoot(t *testing.T) string {
 	t.Helper()
 	cmd := exec.Command("go", "list", "-m", "-f", "{{.Dir}}")
+	cmd.Env = append(os.Environ(), "GOTELEMETRY=off")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Fatalf("go list -m: %v", err)

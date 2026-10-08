@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
+	"github.com/TheAngryPit/meetcrawl/internal/gmeet/oauth"
 )
 
 type Report struct {
@@ -18,6 +19,8 @@ type Report struct {
 	Fixture         FileState    `json:"fixture_manifest,omitempty"`
 	OAuthClientFile FileState    `json:"oauth_client_file"`
 	TokenFile       FileState    `json:"token_file"`
+	TokenKeychain   bool         `json:"token_keychain"`
+	TokenStorage    string       `json:"token_storage,omitempty"`
 	Diagnostics     []Diagnostic `json:"diagnostics,omitempty"`
 }
 
@@ -43,8 +46,12 @@ func Run(cfg gconfig.Config, configPath, fixtureOverride string) Report {
 		TokenPath:       cfg.TokenPath,
 		Archive:         statFile(cfg.DBPath),
 		OAuthClientFile: statFile(cfg.OAuthClientPath),
-		TokenFile:       statFile(cfg.TokenPath),
 	}
+	store := oauth.DefaultTokenStore(cfg.TokenPath)
+	exists, bytes := store.FileState()
+	report.TokenFile = FileState{Path: cfg.TokenPath, Exists: exists, Bytes: bytes}
+	report.TokenKeychain = store.KeychainPresent()
+	report.TokenStorage = store.StorageInUse()
 	if fixtureDir != "" {
 		report.Fixture = statFile(filepath.Join(fixtureDir, "manifest.json"))
 		if !report.Fixture.Exists {
@@ -63,11 +70,11 @@ func Run(cfg gconfig.Config, configPath, fixtureOverride string) Report {
 			Message:  "OAuth client JSON not found; use --fixture for offline sync or place client JSON outside the archive",
 		})
 	}
-	if !report.TokenFile.Exists {
+	if !report.TokenFile.Exists && !report.TokenKeychain {
 		report.Diagnostics = append(report.Diagnostics, Diagnostic{
 			Code:     "oauth_token_missing",
 			Severity: "warning",
-			Message:  "OAuth token not found; live sync needs a token file outside the archive",
+			Message:  "OAuth token not found; run gmeetcrawl auth or use --fixture for offline sync",
 		})
 	}
 	return report

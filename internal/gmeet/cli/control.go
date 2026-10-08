@@ -18,11 +18,12 @@ func controlManifest(configPath string, cfg gconfig.Config) control.Manifest {
 		DefaultCache:    cfg.CacheDir,
 		DefaultLogs:     cfg.LogDir,
 	}
-	manifest.Capabilities = []string{"metadata", "status", "doctor", "sync", "search", "sql"}
+	manifest.Capabilities = []string{"metadata", "status", "doctor", "auth", "sync", "search", "sql"}
 	manifest.Commands = map[string]control.Command{
 		"metadata": {Title: "Metadata", Argv: []string{"gmeetcrawl", "metadata", "--json"}, JSON: true},
 		"status":   {Title: "Status", Argv: []string{"gmeetcrawl", "status", "--json"}, JSON: true},
 		"doctor":   {Title: "Doctor", Argv: []string{"gmeetcrawl", "doctor", "--json"}, JSON: true},
+		"auth":     {Title: "OAuth login", Argv: []string{"gmeetcrawl", "auth", "--json"}, JSON: true, Mutates: true},
 		"sync":     {Title: "Sync", Argv: []string{"gmeetcrawl", "sync", "--json"}, JSON: true, Mutates: true},
 		"search":   {Title: "Search", Argv: []string{"gmeetcrawl", "search", "--json"}, JSON: true},
 		"sql":      {Title: "Read-only SQL", Argv: []string{"gmeetcrawl", "--json", "sql", "select count(*) as artifacts from artifacts"}, JSON: true},

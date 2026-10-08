@@ -69,20 +69,6 @@ func matchByHangout(link string, events []calendar.Event) *calendar.Event {
 	return nil
 }
 
-func matchByOverlap(row crawler.Row, events []calendar.Event) *calendar.Event {
-	point := row.WindowStart
-	if point.IsZero() {
-		return nil
-	}
-	for i := range events {
-		ev := &events[i]
-		if windowOverlaps(ev.Start, ev.End, point) {
-			return ev
-		}
-	}
-	return nil
-}
-
 func windowOverlaps(start, end, point time.Time) bool {
 	if start.IsZero() {
 		return false

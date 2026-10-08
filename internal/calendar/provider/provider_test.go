@@ -1,9 +1,11 @@
 package provider_test
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/TheAngryPit/meetcrawl/internal/calendar/provider"
@@ -20,6 +22,41 @@ func TestListEventsNoAuthDegrades(t *testing.T) {
 	}
 	if events != nil {
 		t.Fatalf("ListEvents() = %#v, want nil without auth", events)
+	}
+}
+
+func TestListEventsAuthPresentWarnsOnClientFailure(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	clientPath := filepath.Join(dir, "oauth-client.json")
+	tokenPath := filepath.Join(dir, "token.json")
+	if err := os.WriteFile(clientPath, []byte("not-valid-oauth-json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(tokenPath, []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var warn bytes.Buffer
+	events, err := provider.ListEvents(context.Background(), provider.Options{
+		OAuthClientPath: clientPath,
+		TokenPath:       tokenPath,
+		Warn:            &warn,
+	})
+	if err != nil {
+		t.Fatalf("ListEvents() err = %v", err)
+	}
+	if events != nil {
+		t.Fatalf("ListEvents() = %#v, want nil on client failure", events)
+	}
+	msg := warn.String()
+	if msg == "" {
+		t.Fatal("expected warning on stderr when auth files exist but client fails")
+	}
+	if strings.Contains(msg, "token") && strings.Contains(strings.ToLower(msg), "secret") {
+		t.Fatalf("warning must not include secrets: %q", msg)
+	}
+	if !strings.Contains(msg, "calendar enrichment skipped") {
+		t.Fatalf("warning = %q, want skip prefix", msg)
 	}
 }
 

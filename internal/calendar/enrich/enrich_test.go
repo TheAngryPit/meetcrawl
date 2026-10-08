@@ -76,6 +76,44 @@ func TestMatchByTimeOverlap(t *testing.T) {
 	}
 }
 
+func TestMatchByOverlapBackToBackDeterministic(t *testing.T) {
+	t.Parallel()
+	row := crawler.Row{
+		Source:      source.KindExportFile,
+		SourceID:    "sha256:overlap-tie-id",
+		WindowStart: time.Date(2026, 1, 15, 14, 25, 0, 0, time.UTC),
+	}
+	first := calendar.Event{
+		ICalUID: "cal-back-to-back-a",
+		Start:   time.Date(2026, 1, 15, 14, 0, 0, 0, time.UTC),
+		End:     time.Date(2026, 1, 15, 14, 30, 0, 0, time.UTC),
+	}
+	second := calendar.Event{
+		ICalUID: "cal-back-to-back-b",
+		Start:   time.Date(2026, 1, 15, 14, 30, 0, 0, time.UTC),
+		End:     time.Date(2026, 1, 15, 15, 0, 0, 0, time.UTC),
+	}
+	orders := [][]calendar.Event{
+		{first, second},
+		{second, first},
+	}
+	var want string
+	for i, events := range orders {
+		ev := enrich.MatchEvent(row, events)
+		if ev == nil {
+			t.Fatal("MatchEvent() = nil, want overlap match")
+		}
+		if i == 0 {
+			want = ev.ICalUID
+		} else if ev.ICalUID != want {
+			t.Fatalf("order %d ICalUID = %q, want %q", i, ev.ICalUID, want)
+		}
+	}
+	if want != "cal-back-to-back-b" {
+		t.Fatalf("picked %q, want cal-back-to-back-b (closest event start to 14:25)", want)
+	}
+}
+
 func TestNoEnrichmentWithoutEvents(t *testing.T) {
 	t.Parallel()
 	row := crawler.Row{

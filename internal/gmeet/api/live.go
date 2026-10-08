@@ -102,7 +102,7 @@ func (c *LiveClient) ListCalendarEvents(ctx context.Context) ([]CalendarEvent, e
 			TimeMin(timeMin).
 			TimeMax(timeMax).
 			MaxResults(250).
-			Fields("nextPageToken, items(id, iCalUID, start, end, attendees, attachments(fileId))").
+			Fields("nextPageToken, items(id, iCalUID, start, end, hangoutLink, attendees, attachments(fileId))").
 			Context(ctx)
 		if pageToken != "" {
 			call = call.PageToken(pageToken)
@@ -136,6 +136,7 @@ func (c *LiveClient) ListCalendarEvents(ctx context.Context) ([]CalendarEvent, e
 				End:           end,
 				AttendeeCount: attendees,
 				AttachmentIDs: attach,
+				HangoutLink:   strings.TrimSpace(item.HangoutLink),
 			})
 		}
 		pageToken = res.NextPageToken

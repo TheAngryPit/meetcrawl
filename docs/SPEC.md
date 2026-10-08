@@ -37,6 +37,9 @@ Go 1.27+ (crawlkit minimum). `make check` mirrors crawlkit: tidy, fmt, vet, unit
 Snapshot, backup, mirror (Git) and embed/vector are **not used in phase 1**. Provider parsing, schemas and privacy policy stay in this repo, per crawlkit's boundary rules.
 
 ## 5. Crawlers (one per source; shared CLI shape: `init`, `doctor`, `sync`, `status`, `search`, `metadata`, `sql` read-only; `--json` goes before the command)
+
+**Crawler vs core boundary.** Anything that links or spans more than one source—calendar enrichment, meeting identity, cross-source dedup—lives in meetcrawl core (`meetcrawl index`, `internal/index`, `internal/calendar`), never inside a crawler binary. Crawlers only read their own source and write their private archive.
+
 **whispcrawl: OpenWhispr (local SQLite).**
 - Source: OpenWhispr's `transcriptions.db` in its app-data dir, overridable with `--source-db`.
 - Capture: copy DB+WAL+SHM with `cache.SnapshotSQLite`/`CopyStableFiles`, then `store.OpenReadOnly` on the copy. The live file is never opened.

@@ -81,7 +81,7 @@ func TestMatchByOverlapBackToBackDeterministic(t *testing.T) {
 	row := crawler.Row{
 		Source:      source.KindExportFile,
 		SourceID:    "sha256:overlap-tie-id",
-		WindowStart: time.Date(2026, 1, 15, 14, 25, 0, 0, time.UTC),
+		WindowStart: time.Date(2026, 1, 15, 14, 30, 0, 0, time.UTC),
 	}
 	first := calendar.Event{
 		ICalUID: "cal-back-to-back-a",
@@ -110,7 +110,20 @@ func TestMatchByOverlapBackToBackDeterministic(t *testing.T) {
 		}
 	}
 	if want != "cal-back-to-back-b" {
-		t.Fatalf("picked %q, want cal-back-to-back-b (closest event start to 14:25)", want)
+		t.Fatalf("picked %q, want cal-back-to-back-b (closest event start to 14:30 boundary)", want)
+	}
+}
+
+func TestMatchByOverlapStrictNoLeadPadding(t *testing.T) {
+	t.Parallel()
+	row := crawler.Row{
+		Source:      source.KindExportFile,
+		SourceID:    "sha256:before-event-id",
+		WindowStart: time.Date(2026, 1, 15, 13, 55, 0, 0, time.UTC),
+	}
+	ev := enrich.MatchEvent(row, syntheticEvents)
+	if ev != nil {
+		t.Fatalf("MatchEvent() = %#v, want nil (5 min before event start)", ev)
 	}
 }
 

@@ -9,7 +9,6 @@ type Kind string
 const (
 	KindOpenWhispr  Kind = "openwhispr"
 	KindGMeetGemini Kind = "gmeet-gemini"
-	// KindExportFile is the planned generic exported-file adapter (VTT, SRT, TXT, Markdown).
 	KindExportFile Kind = "export-file"
 )
 

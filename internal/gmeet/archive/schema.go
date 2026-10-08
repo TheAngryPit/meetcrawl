@@ -18,6 +18,7 @@ create table if not exists artifacts (
   language text not null default '',
   calendar_event_id text,
   participants text,
+  ingest_flags text not null default '',
   updated_at text not null,
   primary key (source_id)
 );
@@ -60,4 +61,4 @@ create table if not exists drive_files (
 );
 `
 
-const SchemaVersion = 1
+const SchemaVersion = 2

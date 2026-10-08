@@ -42,56 +42,41 @@ func NewLive(ctx context.Context, cfg gconfig.Config) (*LiveClient, error) {
 	return &LiveClient{drive: driveSvc, calendar: calSvc}, nil
 }
 
-func (c *LiveClient) ListDocs(ctx context.Context) ([]DriveDoc, error) {
-	const pageSize = 100
-	var out []DriveDoc
-	pageToken := ""
-	for {
-		call := c.drive.Files.List().
-			Q("mimeType='application/vnd.google-apps.document' and trashed=false").
-			Fields("nextPageToken, files(id, name, mimeType, modifiedTime, version)").
-			PageSize(pageSize).
-			Context(ctx)
-		if pageToken != "" {
-			call = call.PageToken(pageToken)
-		}
-		res, err := call.Do()
-		if err != nil {
-			return nil, fmt.Errorf("drive files.list: %w", err)
-		}
-		for _, f := range res.Files {
-			mod, _ := time.Parse(time.RFC3339, f.ModifiedTime)
-			out = append(out, DriveDoc{
-				ID:           f.Id,
-				Name:         f.Name,
-				MimeType:     f.MimeType,
-				ModifiedTime: mod.UTC(),
-				RevisionID:   fmt.Sprintf("%d", f.Version),
-			})
-		}
-		pageToken = res.NextPageToken
-		if pageToken == "" {
-			break
-		}
+func (c *LiveClient) ListDocs(ctx context.Context, folderRoots []string) ([]DriveDoc, error) {
+	byID, err := c.collectDocsUnderRoots(ctx, folderRoots)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]DriveDoc, 0, len(byID))
+	for _, doc := range byID {
+		out = append(out, doc)
 	}
 	return out, nil
 }
 
-func (c *LiveClient) ExportPlainText(ctx context.Context, fileID string) (string, error) {
-	res, err := c.drive.Files.Export(fileID, "text/plain").Context(ctx).Download()
+func (c *LiveClient) ExportDocument(ctx context.Context, fileID string) (string, string, error) {
+	md, errMD := c.exportBytes(ctx, fileID, "text/markdown")
+	plain, errPlain := c.exportBytes(ctx, fileID, "text/plain")
+	if strings.TrimSpace(md) == "" && strings.TrimSpace(plain) == "" {
+		if errMD != nil && errPlain != nil {
+			return "", "", fmt.Errorf("drive export %s: %v; %v", fileID, errMD, errPlain)
+		}
+		return "", "", fmt.Errorf("drive export %s is empty", fileID)
+	}
+	return md, plain, nil
+}
+
+func (c *LiveClient) exportBytes(ctx context.Context, fileID, mimeType string) (string, error) {
+	res, err := c.drive.Files.Export(fileID, mimeType).Context(ctx).Download()
 	if err != nil {
-		return "", fmt.Errorf("drive export %s: %w", fileID, err)
+		return "", err
 	}
 	defer res.Body.Close()
 	data, err := io.ReadAll(io.LimitReader(res.Body, 32<<20))
 	if err != nil {
 		return "", err
 	}
-	text := strings.TrimSpace(string(data))
-	if text == "" {
-		return "", fmt.Errorf("drive export %s is empty", fileID)
-	}
-	return text, nil
+	return string(data), nil
 }
 
 func (c *LiveClient) ListCalendarEvents(ctx context.Context) ([]CalendarEvent, error) {

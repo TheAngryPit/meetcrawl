@@ -44,11 +44,12 @@ Snapshot, backup, mirror (Git) and embed/vector are **not used in phase 1**. Pro
 - Schema check via `PRAGMA table_info`. Columns differ across OpenWhispr versions; unknown layout → `unsupported_schema`.
 - Never copies `speaker_profiles` / `note_speaker_embeddings` (voice biometrics), share tokens or cloud ids. Never calls OpenWhispr cloud sync.
 
-**gmeetcrawl: Gemini/Meet transcript Docs in Google Drive.**
-- Lists Google Docs produced by Meet ("Notes by Gemini" and transcript Docs) via the Drive API v3, and exports them as plain text.
+**gmeetcrawl: Gemini/Meet Docs in Google Drive.**
+- Lists native Google Docs whose titles match Meet/Gemini patterns (Portuguese `Reunião iniciada … – Notas do Gemini` or English `… Notes by Gemini`). Folder scope comes from config `meet_folder_roots` (default `Google Meet`); each entry is a folder id or path. The folder filter limits search scope; title and exported body structure are the primary ingest signals. Docs may sit directly under the root folder or in a per-meeting subfolder.
+- Exports each Doc with Drive `files.export` under `drive.readonly` only (prefers `text/markdown`, falls back to `text/plain`). One Doc often contains two tabs; export returns both tabs in one body. Ingest splits on tab markers into separate notes and transcript artifacts linked by Drive file id (`<fileId>#notes`, `<fileId>#transcript`). Missing transcript tab → notes-only with flag `notes-only`. Missing notes tab → `unsupported_schema`.
 - OAuth scopes: read-only only (`drive.readonly`, `calendar.events.readonly`). Tokens live in the OS keychain or a 0600 file outside the archive.
-- Reads the matching Calendar events (iCalUID, start/end, attendee count) so the index can key meetings. Stores Drive file id, revision and modifiedTime for incremental sync.
-- `--fixture <dir>` replays recorded synthetic API responses, so tests and proofs never need network or credentials.
+- Calendar events (iCalUID, start/end, attendee count) are optional enrichment for meeting keys; sync continues when Calendar is unavailable. Stores Drive file id, revision and modifiedTime for incremental sync.
+- `--fixture <dir>` replays recorded synthetic API responses, so tests and proofs never need network or credentials. See `docs/gmeetcrawl-config.md`.
 
 **graincrawl: Granola (later, not phase 1).** Use upstream `openclaw/graincrawl` pinned to an exact version, not a fork.
 Allowed sources only: `--source public-api` (`GRAINCRAWL_ALLOW_PUBLIC_API=true`, key injected at runtime) or `--source desktop-cache`.
@@ -101,7 +102,7 @@ make check && scripts/proof.sh      # writes proof/summary.json and proof/*.log
 1. Settled: name is `meetcrawl`; README title is `# meetcrawl 🎙️ — Your meetings, on the record. Locally.` and the README ends with the credit line "Built by a storyteller who builds the worlds he imagines." linking to https://github.com/TheAngryPit. Settled: the generic export-file adapter (VTT/SRT/TXT/MD, Kind export-file) joins phase 1.
 2. CrawlBar's own `docs/control-protocol.md` wasn't in the research. Confirm `~/.crawlbar/apps/*.json` accepts a plain `crawlkit.control.v1` manifest, or what extra fields it needs.
 3. Settled: gmeetcrawl uses its own OAuth desktop client; the user supplies the client JSON. The token lives in the OS keychain or a 0600 file outside the archive, not via `gog`. Scopes stay `drive.readonly` and `calendar.events.readonly` (no narrower scope).
-4. How to reliably tell Gemini notes Docs from transcript Docs (title pattern, folder, Calendar attachment). Needs one real sample, inspected by the user, never committed.
+4. Settled: one native Gemini Doc holds notes and transcript tabs. Drive `files.export` (`text/markdown` or `text/plain`, `drive.readonly` only) returns both tabs in one body. Ingest splits on tab markers (locale-tolerant PT/EN). Title patterns and export structure are primary; `meet_folder_roots` (default `Google Meet`) scopes folder search only. Calendar attachment is optional enrichment, not required for ingest.
 5. Calendar source: inside gmeetcrawl (as drafted) or a separate calendar crawler? What does OpenWhispr's `calendar_event_id` refer to?
 6. Match window default (±10 min) and privacy-class rule format.
 7. MCP transport: stdio only, or also birdclaw-style loopback HTTP + bearer token later?

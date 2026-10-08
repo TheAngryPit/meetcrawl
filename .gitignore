@@ -27,6 +27,20 @@ go.work.sum
 
 # env file
 .env
+.env*
+
+# Local SQLite archives and proof output
+*.db
+*.db-wal
+*.db-shm
+proof/
+
+# OAuth token and credential JSON files
+*credential*.json
+client_secret*.json
+*oauth*token*.json
+token.json
+tokens.json
 
 # Editor/IDE
 # .idea/

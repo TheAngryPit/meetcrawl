@@ -160,6 +160,7 @@ func (a App) runDoctor(w io.Writer, flags GlobalFlags) error {
 	printKV(w, "config", report.ConfigPath)
 	printKV(w, "whispcrawl_db", report.Archives.Whispcrawl.Exists)
 	printKV(w, "gmeetcrawl_db", report.Archives.Gmeetcrawl.Exists)
+	printKV(w, "exportcrawl_db", report.Archives.Exportcrawl.Exists)
 	printKV(w, "index_db", report.Archives.Index.Exists)
 	return nil
 }
@@ -183,12 +184,17 @@ func (a App) runIndex(ctx context.Context, w io.Writer, flags GlobalFlags, args 
 	if override, ok := flagValue(args, "--gmeetcrawl-db"); ok {
 		gmeetDB = override
 	}
+	exportDB := cfg.ExportcrawlDB
+	if override, ok := flagValue(args, "--exportcrawl-db"); ok {
+		exportDB = override
+	}
 	result, err := build.Run(ctx, build.Options{
 		IndexDBPath: cfg.DBPath,
 		Privacy:     cfg.Privacy,
 		Sources: []build.SourceArchive{
 			{Kind: source.KindOpenWhispr, Path: whispDB},
 			{Kind: source.KindGMeetGemini, Path: gmeetDB},
+			{Kind: source.KindExportFile, Path: exportDB},
 		},
 	})
 	if err != nil {

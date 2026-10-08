@@ -2,7 +2,7 @@
   "schema_version": "crawlkit.control.v1",
   "id": "meetcrawl",
   "display_name": "Meetings Index",
-  "description": "Local-first meetings index joining whispcrawl and gmeetcrawl archives.",
+  "description": "Local-first meetings index joining whispcrawl, gmeetcrawl, and exportcrawl archives.",
   "binary": {
     "name": "meetcrawl"
   },
@@ -73,6 +73,7 @@
     "local_only_scopes": [
       "whispcrawl SQLite archive",
       "gmeetcrawl SQLite archive",
+      "exportcrawl SQLite archive",
       "meetcrawl index SQLite archive"
     ]
   }

@@ -13,7 +13,7 @@ func ControlManifest(configPath string, cfg mconfig.Config) control.Manifest {
 	_ = configPath
 	_ = cfg
 	manifest := control.NewManifest("meetcrawl", "Meetings Index", "meetcrawl")
-	manifest.Description = "Local-first meetings index joining whispcrawl and gmeetcrawl archives."
+	manifest.Description = "Local-first meetings index joining whispcrawl, gmeetcrawl, and exportcrawl archives."
 	manifest.Paths = portableManifestPaths()
 	manifest.Capabilities = []string{"metadata", "status", "doctor", "index", "search"}
 	manifest.Commands = map[string]control.Command{
@@ -29,6 +29,7 @@ func ControlManifest(configPath string, cfg mconfig.Config) control.Manifest {
 		LocalOnlyScopes: []string{
 			"whispcrawl SQLite archive",
 			"gmeetcrawl SQLite archive",
+			"exportcrawl SQLite archive",
 			"meetcrawl index SQLite archive",
 		},
 	}

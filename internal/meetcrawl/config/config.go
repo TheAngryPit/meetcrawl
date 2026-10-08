@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
 	"github.com/TheAngryPit/meetcrawl/internal/index/privacy"
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
@@ -23,13 +24,14 @@ type MCPConfig struct {
 }
 
 type Config struct {
-	Version      int            `toml:"version" json:"version"`
-	DBPath       string         `toml:"db_path" json:"db_path"`
-	ReadsDBPath  string         `toml:"reads_db_path" json:"reads_db_path"`
-	WhispcrawlDB string         `toml:"whispcrawl_db" json:"whispcrawl_db"`
-	GmeetcrawlDB string         `toml:"gmeetcrawl_db" json:"gmeetcrawl_db"`
-	Privacy      privacy.Config `toml:"privacy" json:"privacy"`
-	MCP          MCPConfig      `toml:"mcp" json:"mcp"`
+	Version       int            `toml:"version" json:"version"`
+	DBPath        string         `toml:"db_path" json:"db_path"`
+	ReadsDBPath   string         `toml:"reads_db_path" json:"reads_db_path"`
+	WhispcrawlDB  string         `toml:"whispcrawl_db" json:"whispcrawl_db"`
+	GmeetcrawlDB  string         `toml:"gmeetcrawl_db" json:"gmeetcrawl_db"`
+	ExportcrawlDB string         `toml:"exportcrawl_db" json:"exportcrawl_db"`
+	Privacy       privacy.Config `toml:"privacy" json:"privacy"`
+	MCP           MCPConfig      `toml:"mcp" json:"mcp"`
 }
 
 func App() ckconfig.App {
@@ -53,12 +55,17 @@ func Defaults() (Config, string, error) {
 	if err != nil {
 		return Config{}, "", err
 	}
+	exportDefaults, _, err := econfig.Defaults()
+	if err != nil {
+		return Config{}, "", err
+	}
 	cfg := Config{
-		Version:      1,
-		DBPath:       paths.DBPath,
-		ReadsDBPath:  filepath.Join(filepath.Dir(paths.DBPath), "reads.db"),
-		WhispcrawlDB: whispDefaults.DBPath,
-		GmeetcrawlDB: gmeetDefaults.DBPath,
+		Version:       1,
+		DBPath:        paths.DBPath,
+		ReadsDBPath:   filepath.Join(filepath.Dir(paths.DBPath), "reads.db"),
+		WhispcrawlDB:  whispDefaults.DBPath,
+		GmeetcrawlDB:  gmeetDefaults.DBPath,
+		ExportcrawlDB: exportDefaults.DBPath,
 	}
 	return cfg, paths.ConfigPath, nil
 }
@@ -86,6 +93,7 @@ func Load(configPath string) (Config, string, error) {
 	cfg.ReadsDBPath = ckconfig.ExpandHome(cfg.ReadsDBPath)
 	cfg.WhispcrawlDB = ckconfig.ExpandHome(cfg.WhispcrawlDB)
 	cfg.GmeetcrawlDB = ckconfig.ExpandHome(cfg.GmeetcrawlDB)
+	cfg.ExportcrawlDB = ckconfig.ExpandHome(cfg.ExportcrawlDB)
 	if cfg.DBPath == "" {
 		paths, err := App().DefaultPaths()
 		if err != nil {
@@ -109,6 +117,13 @@ func Load(configPath string) (Config, string, error) {
 			return Config{}, resolved, err
 		}
 		cfg.GmeetcrawlDB = gmeetDefaults.DBPath
+	}
+	if cfg.ExportcrawlDB == "" {
+		exportDefaults, _, err := econfig.Defaults()
+		if err != nil {
+			return Config{}, resolved, err
+		}
+		cfg.ExportcrawlDB = exportDefaults.DBPath
 	}
 	return cfg, resolved, nil
 }

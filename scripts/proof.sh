@@ -18,6 +18,8 @@ WHISP_SUPPORTED_DB="${REPO_ROOT}/testdata/fixtures/openwhispr/supported/transcri
 WHISP_UNSUPPORTED_DB="${REPO_ROOT}/testdata/fixtures/openwhispr/unsupported/transcriptions.db"
 GMEET_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/gdrive/supported"
 GMEET_UNSUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/gdrive/unsupported"
+EXPORT_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/export-file/supported"
+EXPORT_UNSUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/export-file/unsupported"
 
 mkdir -p "${PROOF_DIR}"
 BINDIR="${PROOF_HOME}/bin"
@@ -65,6 +67,7 @@ build_binaries() {
     cd "${REPO_ROOT}"
     HOME="${BUILD_HOME}" GOWORK=off go build -o "${BINDIR}/whispcrawl" ./cmd/whispcrawl
     HOME="${BUILD_HOME}" GOWORK=off go build -o "${BINDIR}/gmeetcrawl" ./cmd/gmeetcrawl
+    HOME="${BUILD_HOME}" GOWORK=off go build -o "${BINDIR}/exportcrawl" ./cmd/exportcrawl
     HOME="${BUILD_HOME}" GOWORK=off go build -o "${BINDIR}/meetcrawl" ./cmd/meetcrawl
   ) >>"${PROOF_DIR}/build.log" 2>&1
 }
@@ -86,7 +89,15 @@ run_sync_ingest() {
   local gmeet_artifacts
   gmeet_artifacts="$(json_get result.artifacts "${gmeet_out}")"
   [[ "${gmeet_artifacts}" == "3" ]] || fail "gmeetcrawl artifacts=${gmeet_artifacts} want 3"
-  log "sync ingest ok (3 + 3 artifacts)"
+
+  "${BINDIR}/exportcrawl" init >>"${PROOF_DIR}/export-init.log" 2>&1
+  local export_out
+  export_out="$("${BINDIR}/exportcrawl" --json sync --fixture "${EXPORT_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/export-sync.log")"
+  echo "${export_out}" >>"${PROOF_DIR}/export-sync.log"
+  local export_artifacts
+  export_artifacts="$(json_get result.artifacts "${export_out}")"
+  [[ "${export_artifacts}" == "4" ]] || fail "exportcrawl artifacts=${export_artifacts} want 4"
+  log "sync ingest ok (3 + 3 + 4 artifacts)"
 }
 
 patch_meetcrawl_privacy() {
@@ -214,6 +225,19 @@ run_unsupported_schema() {
   [[ "${gmeet_code}" -ne 0 ]] || fail "gmeetcrawl unsupported fixture exited 0"
   printf '%s' "${gmeet_out}" | grep -q unsupported_schema || fail "gmeetcrawl missing unsupported_schema"
   [[ ! -f "${gmeet_db}" ]] || fail "gmeetcrawl wrote archive on unsupported schema"
+
+  iso_home="$(mktemp -d)"
+  HOME="${iso_home}" "${BINDIR}/exportcrawl" init >>"${PROOF_DIR}/export-unsupported-init.log" 2>&1
+  export_db="${iso_home}/.local/share/exportcrawl/exportcrawl.db"
+  local export_code=0 export_out
+  set +e
+  export_out="$(HOME="${iso_home}" "${BINDIR}/exportcrawl" --json sync --fixture "${EXPORT_UNSUPPORTED_FIX}" 2>&1)"
+  export_code=$?
+  set -e
+  echo "${export_out}" >>"${PROOF_DIR}/export-unsupported.log"
+  [[ "${export_code}" -ne 0 ]] || fail "exportcrawl unsupported fixture exited 0"
+  printf '%s' "${export_out}" | grep -q unsupported_schema || fail "exportcrawl missing unsupported_schema"
+  [[ ! -f "${export_db}" ]] || fail "exportcrawl wrote archive on unsupported schema"
   log "unsupported_schema fail-closed ok"
 }
 

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "id": "sha256:synthetic-vtt-id",
+      "path": "standup.vtt",
+      "modifiedTime": "2026-01-15T14:25:00Z"
+    },
+    {
+      "id": "sha256:synthetic-srt-id",
+      "path": "standup.srt",
+      "modifiedTime": "2026-01-15T14:25:00Z"
+    },
+    {
+      "id": "sha256:synthetic-txt-id",
+      "path": "standup.txt",
+      "modifiedTime": "2026-01-15T14:25:00Z"
+    },
+    {
+      "id": "sha256:synthetic-md-id",
+      "path": "standup.md",
+      "modifiedTime": "2026-01-15T14:25:00Z"
+    }
+  ]
+}

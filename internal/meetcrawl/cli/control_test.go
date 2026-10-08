@@ -16,14 +16,15 @@ import (
 	"github.com/openclaw/crawlkit/control"
 )
 
-const crawlbarManifestHome = "/tmp/meetcrawl-crawlbar-home"
-
 func TestMetadataJSONControlSchema(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	manifest := mustManifest(t)
 	if err := validateManifestExported(manifest); err != nil {
 		t.Fatal(err)
+	}
+	if !strings.HasPrefix(manifest.Paths.DefaultConfig, "~/") {
+		t.Fatalf("default_config = %q, want ~/… portable path", manifest.Paths.DefaultConfig)
 	}
 }
 
@@ -50,9 +51,10 @@ func TestMetadataCommandMatchesManifest(t *testing.T) {
 
 func TestShippedCrawlbarManifestMatchesCommand(t *testing.T) {
 	if runtime.GOOS != "linux" {
-		t.Skip("contrib/crawlbar/meetcrawl.json uses Linux XDG default paths")
+		t.Skip("contrib/crawlbar/meetcrawl.json ships Linux XDG ~/ defaults")
 	}
-	t.Setenv("HOME", crawlbarManifestHome)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
 	for _, key := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME"} {
 		t.Setenv(key, "")
 	}

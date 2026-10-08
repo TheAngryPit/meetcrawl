@@ -8,9 +8,9 @@
   },
   "branding": {},
   "paths": {
-    "default_config": "/tmp/meetcrawl-crawlbar-home/.config/meetcrawl/config.toml",
+    "default_config": "~/.config/meetcrawl/config.toml",
     "config_env": "MEETCRAWL_CONFIG",
-    "default_database": "/tmp/meetcrawl-crawlbar-home/.local/share/meetcrawl/meetcrawl.db"
+    "default_database": "~/.local/share/meetcrawl/meetcrawl.db"
   },
   "commands": {
     "doctor": {

@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	mconfig "github.com/TheAngryPit/meetcrawl/internal/meetcrawl/config"
@@ -12,9 +14,9 @@ func ControlManifest(configPath string, cfg mconfig.Config) control.Manifest {
 	manifest := control.NewManifest("meetcrawl", "Meetings Index", "meetcrawl")
 	manifest.Description = "Local-first meetings index joining whispcrawl and gmeetcrawl archives."
 	manifest.Paths = control.Paths{
-		DefaultConfig:   configPath,
+		DefaultConfig:   portableHomePath(configPath),
 		ConfigEnv:       mconfig.ConfigEnv,
-		DefaultDatabase: cfg.DBPath,
+		DefaultDatabase: portableHomePath(cfg.DBPath),
 	}
 	manifest.Capabilities = []string{"metadata", "status", "doctor", "index", "search"}
 	manifest.Commands = map[string]control.Command{
@@ -67,4 +69,25 @@ func ValidateManifest(m control.Manifest) error {
 		return fmt.Errorf("privacy.local_only_scopes is required")
 	}
 	return nil
+}
+
+// portableHomePath rewrites absolute paths under the user home as ~/… so crawlbar
+// manifests stay portable. crawlkit.config.ExpandHome accepts ~/ at runtime.
+func portableHomePath(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return path
+	}
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return path
+	}
+	if path == home {
+		return "~"
+	}
+	prefix := home + string(filepath.Separator)
+	if strings.HasPrefix(path, prefix) {
+		return "~/" + strings.TrimPrefix(path, prefix)
+	}
+	return path
 }

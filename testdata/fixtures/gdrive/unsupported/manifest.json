@@ -1,10 +1,15 @@
 {
-  "version": 99,
+  "version": 1,
   "drive_files": [
     {
-      "id": "bad-layout",
-      "name": "Broken layout",
-      "exportPath": "exports/missing.txt"
+      "id": "gdrive-bad-001",
+      "name": "Reunião iniciada a 2026/03/01 09:00 WET – Notas do Gemini",
+      "mimeType": "application/vnd.google-apps.document",
+      "modifiedTime": "2026-03-01T09:00:00Z",
+      "revisionId": "rev-bad-001",
+      "parentPath": "Google Meet",
+      "exportMarkdownPath": "exports/broken.md",
+      "exportPlainPath": "exports/broken.txt"
     }
   ],
   "calendar_events": []

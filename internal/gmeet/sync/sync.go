@@ -57,7 +57,7 @@ func Run(ctx context.Context, cfg gconfig.Config, opts Options) (Result, error) 
 		version = "gmeetcrawl-dev"
 	}
 
-	rows, driveRows, err := ingest.BuildArtifacts(ctx, client, version)
+	rows, driveRows, err := ingest.BuildArtifacts(ctx, client, cfg, version)
 	if err != nil {
 		if isDocLayoutError(err) {
 			return failSchema(fixtureDir, err)
@@ -73,6 +73,7 @@ func Run(ctx context.Context, cfg gconfig.Config, opts Options) (Result, error) 
 			Artifact:        row.Artifact,
 			CalendarEventID: row.CalendarEventID,
 			Participants:    row.Participants,
+			IngestFlags:     row.IngestFlags,
 		})
 	}
 	outcome := source.SyncOutcome{Code: source.OutcomeOK, Artifacts: artifacts}
@@ -134,7 +135,11 @@ func isDocLayoutError(err error) bool {
 	if err == nil {
 		return false
 	}
-	return strings.Contains(err.Error(), "unrecognized Meet/Gemini doc title")
+	msg := err.Error()
+	return strings.Contains(msg, "unrecognized Meet/Gemini doc title") ||
+		strings.Contains(msg, "unsupported_schema") ||
+		strings.Contains(msg, "gemini export") ||
+		strings.Contains(msg, "missing notes tab marker")
 }
 
 func IsUnsupportedSchema(err error) bool {

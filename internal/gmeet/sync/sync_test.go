@@ -16,19 +16,8 @@ import (
 func TestUnsupportedFixtureFailsClosed(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	fixtureDir := filepath.Join(root, "unsupported")
-	if err := os.MkdirAll(fixtureDir, 0o700); err != nil {
-		t.Fatal(err)
-	}
 	repoRoot := mustRepoRoot(t)
-	src := filepath.Join(repoRoot, "testdata", "fixtures", "gdrive", "unsupported")
-	data, err := os.ReadFile(filepath.Join(src, "manifest.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(fixtureDir, "manifest.json"), data, 0o600); err != nil {
-		t.Fatal(err)
-	}
+	fixtureDir := filepath.Join(repoRoot, "testdata", "fixtures", "gdrive", "unsupported")
 	cfg := config.Config{
 		Version:  1,
 		DBPath:   filepath.Join(root, "gmeetcrawl.db"),
@@ -46,6 +35,54 @@ func TestUnsupportedFixtureFailsClosed(t *testing.T) {
 		t.Fatalf("archive created on unsupported schema")
 	} else if !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("Stat(db) = %v", err)
+	}
+}
+
+func TestSyncCustomFolderRoot(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	fixtureDir := filepath.Join(root, "custom")
+	if err := os.MkdirAll(filepath.Join(fixtureDir, "exports"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	manifest := `{
+  "version": 1,
+  "drive_files": [{
+    "id": "gdrive-custom-001",
+    "name": "Synthetic archive - Notes by Gemini",
+    "modifiedTime": "2026-02-10T11:00:00Z",
+    "revisionId": "rev-custom-001",
+    "parentPath": "Synthetic Archive",
+    "exportMarkdownPath": "exports/custom.md"
+  }],
+  "calendar_events": []
+}`
+	exportMD := `# **Notes by Gemini**
+
+### Summary
+Custom folder blorp.`
+	if err := os.WriteFile(filepath.Join(fixtureDir, "manifest.json"), []byte(manifest), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(fixtureDir, "exports", "custom.md"), []byte(exportMD), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg := config.Config{
+		Version:         1,
+		DBPath:          filepath.Join(root, "gmeetcrawl.db"),
+		CacheDir:        filepath.Join(root, "cache"),
+		LogDir:          filepath.Join(root, "logs"),
+		MeetFolderRoots: []string{"Synthetic Archive"},
+	}
+	result, err := sync.Run(context.Background(), cfg, sync.Options{
+		FixtureDir:     fixtureDir,
+		CrawlerVersion: "gmeetcrawl-test",
+	})
+	if err != nil {
+		t.Fatalf("Run() = %v", err)
+	}
+	if result.Artifacts != 1 {
+		t.Fatalf("Artifacts = %d, want 1", result.Artifacts)
 	}
 }
 

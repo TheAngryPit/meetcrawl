@@ -18,12 +18,15 @@ type Manifest struct {
 }
 
 type DriveFile struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	MimeType     string `json:"mimeType"`
-	ModifiedTime string `json:"modifiedTime"`
-	RevisionID   string `json:"revisionId"`
-	ExportPath   string `json:"exportPath"`
+	ID                 string `json:"id"`
+	Name               string `json:"name"`
+	MimeType           string `json:"mimeType"`
+	ModifiedTime       string `json:"modifiedTime"`
+	RevisionID         string `json:"revisionId"`
+	ParentPath         string `json:"parentPath,omitempty"`
+	ExportPath         string `json:"exportPath,omitempty"`
+	ExportMarkdownPath string `json:"exportMarkdownPath,omitempty"`
+	ExportPlainPath    string `json:"exportPlainPath,omitempty"`
 }
 
 type CalendarEvent struct {
@@ -49,9 +52,9 @@ func LoadDir(dir string) (Manifest, error) {
 		return Manifest{}, err
 	}
 	for i := range manifest.DriveFiles {
-		if manifest.DriveFiles[i].ExportPath != "" && !filepath.IsAbs(manifest.DriveFiles[i].ExportPath) {
-			manifest.DriveFiles[i].ExportPath = filepath.Join(dir, manifest.DriveFiles[i].ExportPath)
-		}
+		manifest.DriveFiles[i].ExportPath = resolveExport(dir, manifest.DriveFiles[i].ExportPath)
+		manifest.DriveFiles[i].ExportMarkdownPath = resolveExport(dir, manifest.DriveFiles[i].ExportMarkdownPath)
+		manifest.DriveFiles[i].ExportPlainPath = resolveExport(dir, manifest.DriveFiles[i].ExportPlainPath)
 	}
 	return manifest, nil
 }
@@ -74,8 +77,10 @@ func Validate(m Manifest) error {
 		if f.MimeType != "" && f.MimeType != "application/vnd.google-apps.document" {
 			return fmt.Errorf("drive file %q has unexpected mimeType %q", f.ID, f.MimeType)
 		}
-		if strings.TrimSpace(f.ExportPath) == "" {
-			return fmt.Errorf("drive file %q missing exportPath", f.ID)
+		if strings.TrimSpace(f.ExportPath) == "" &&
+			strings.TrimSpace(f.ExportMarkdownPath) == "" &&
+			strings.TrimSpace(f.ExportPlainPath) == "" {
+			return fmt.Errorf("drive file %q missing export path", f.ID)
 		}
 		if _, dup := ids[f.ID]; dup {
 			return fmt.Errorf("duplicate drive file id %q", f.ID)
@@ -96,6 +101,14 @@ func Validate(m Manifest) error {
 		}
 	}
 	return nil
+}
+
+func resolveExport(dir, path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" || filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(dir, path)
 }
 
 func ReadExport(path string) (string, error) {

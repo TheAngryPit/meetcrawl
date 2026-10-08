@@ -2,20 +2,14 @@
   "version": 1,
   "drive_files": [
     {
-      "id": "gdrive-transcript-001",
-      "name": "Synthetic standup - Transcript",
+      "id": "gdrive-combined-001",
+      "name": "Reunião iniciada a 2026/01/15 14:00 WET – Notas do Gemini",
       "mimeType": "application/vnd.google-apps.document",
       "modifiedTime": "2026-01-15T14:25:00Z",
-      "revisionId": "rev-transcript-001",
-      "exportPath": "exports/transcript.txt"
-    },
-    {
-      "id": "gdrive-notes-001",
-      "name": "Synthetic standup - Notes by Gemini",
-      "mimeType": "application/vnd.google-apps.document",
-      "modifiedTime": "2026-01-15T14:20:00Z",
-      "revisionId": "rev-notes-001",
-      "exportPath": "exports/notes.txt"
+      "revisionId": "rev-combined-001",
+      "parentPath": "Google Meet/krr-xxzz-qqq - 2026/01/15 14:00 WET",
+      "exportMarkdownPath": "exports/combined.md",
+      "exportPlainPath": "exports/combined.txt"
     },
     {
       "id": "gdrive-adhoc-001",
@@ -23,7 +17,8 @@
       "mimeType": "application/vnd.google-apps.document",
       "modifiedTime": "2026-02-01T10:00:00Z",
       "revisionId": "rev-adhoc-001",
-      "exportPath": "exports/adhoc-notes.txt"
+      "parentPath": "Google Meet",
+      "exportMarkdownPath": "exports/adhoc-notes.md"
     }
   ],
   "calendar_events": [
@@ -33,7 +28,7 @@
       "start": "2026-01-15T14:00:00Z",
       "end": "2026-01-15T14:30:00Z",
       "attendeeCount": 2,
-      "attachmentFileIds": ["gdrive-transcript-001", "gdrive-notes-001"]
+      "attachmentFileIds": ["gdrive-combined-001"]
     }
   ]
 }

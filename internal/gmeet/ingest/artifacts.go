@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/TheAngryPit/meetcrawl/internal/gmeet/api"
-	"github.com/TheAngryPit/meetcrawl/internal/gmeet/docclass"
+	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
+	"github.com/TheAngryPit/meetcrawl/internal/gmeet/split"
 	"github.com/TheAngryPit/meetcrawl/internal/source"
 )
 
@@ -15,6 +17,7 @@ type StoredRow struct {
 	Artifact        source.Artifact
 	CalendarEventID string
 	Participants    string
+	IngestFlags     string
 }
 
 type DriveRecord struct {
@@ -26,24 +29,25 @@ type DriveRecord struct {
 func BuildArtifacts(
 	ctx context.Context,
 	client api.Client,
+	cfg gconfig.Config,
 	crawlerVersion string,
 ) ([]StoredRow, []DriveRecord, error) {
-	docs, err := client.ListDocs(ctx)
+	docs, err := client.ListDocs(ctx, cfg.MeetFolderRoots)
 	if err != nil {
 		return nil, nil, err
 	}
 	events, err := client.ListCalendarEvents(ctx)
 	if err != nil {
-		return nil, nil, err
+		events = nil
 	}
 	var rows []StoredRow
 	var driveRows []DriveRecord
 	for _, doc := range docs {
-		fidelity, err := docclass.Classify(doc.Name)
+		md, plain, err := client.ExportDocument(ctx, doc.ID)
 		if err != nil {
 			return nil, nil, err
 		}
-		text, err := client.ExportPlainText(ctx, doc.ID)
+		parsed, err := parseExport(ctx, client, doc.ID, md, plain)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -63,29 +67,19 @@ func BuildArtifacts(
 		if revision == "" {
 			revision = doc.ModifiedTime.UTC().Format(time.RFC3339Nano)
 		}
-		artifact := source.Artifact{
-			Identity: source.Identity{
-				Kind:     source.KindGMeetGemini,
-				SourceID: doc.ID,
-			},
-			SourceRevision: revision,
-			Fidelity:       fidelity,
-			Privacy:        source.PrivacyPrivate,
-			NormalizedText: text,
-			Window:         window,
-			Language:       "und",
-		}
-		if err := artifact.Validate(); err != nil {
+		flags := strings.Join(parsed.Flags, ",")
+		notesRow, err := artifactRow(doc.ID, revision, source.FidelityNotes, parsed.NotesText, window, calendarID, participants, flags, crawlerVersion)
+		if err != nil {
 			return nil, nil, err
 		}
-		if _, err := source.ProvenanceForArtifact(artifact, crawlerVersion); err != nil {
-			return nil, nil, err
+		rows = append(rows, notesRow)
+		if parsed.TranscriptText != "" {
+			transRow, err := artifactRow(doc.ID, revision, source.FidelityTranscript, parsed.TranscriptText, window, calendarID, participants, flags, crawlerVersion)
+			if err != nil {
+				return nil, nil, err
+			}
+			rows = append(rows, transRow)
 		}
-		rows = append(rows, StoredRow{
-			Artifact:        artifact,
-			CalendarEventID: calendarID,
-			Participants:    participants,
-		})
 		driveRows = append(driveRows, DriveRecord{
 			FileID:       doc.ID,
 			RevisionID:   revision,
@@ -96,4 +90,52 @@ func BuildArtifacts(
 		return nil, nil, fmt.Errorf("no Meet/Gemini docs matched ingest rules")
 	}
 	return rows, driveRows, nil
+}
+
+func parseExport(ctx context.Context, client api.Client, fileID, md, plain string) (split.Result, error) {
+	parsed, _, err := split.ParseWithFormat(md, plain)
+	if err == nil {
+		return parsed, nil
+	}
+	if strings.TrimSpace(plain) == "" {
+		plain, err = client.ExportPlainText(ctx, fileID)
+		if err != nil {
+			return split.Result{}, err
+		}
+	}
+	return split.Parse("", plain)
+}
+
+func artifactRow(
+	docID, revision string,
+	fidelity source.Fidelity,
+	text string,
+	window source.Window,
+	calendarID, participants, flags, crawlerVersion string,
+) (StoredRow, error) {
+	sourceID := docID + "#" + fidelity.String()
+	artifact := source.Artifact{
+		Identity: source.Identity{
+			Kind:     source.KindGMeetGemini,
+			SourceID: sourceID,
+		},
+		SourceRevision: revision,
+		Fidelity:       fidelity,
+		Privacy:        source.PrivacyPrivate,
+		NormalizedText: text,
+		Window:         window,
+		Language:       "und",
+	}
+	if err := artifact.Validate(); err != nil {
+		return StoredRow{}, err
+	}
+	if _, err := source.ProvenanceForArtifact(artifact, crawlerVersion); err != nil {
+		return StoredRow{}, err
+	}
+	return StoredRow{
+		Artifact:        artifact,
+		CalendarEventID: calendarID,
+		Participants:    participants,
+		IngestFlags:     flags,
+	}, nil
 }

@@ -19,6 +19,7 @@ type StoredArtifact struct {
 	Artifact        source.Artifact
 	CalendarEventID string
 	Participants    string
+	IngestFlags     string
 }
 
 type Status struct {
@@ -83,8 +84,8 @@ func (s *Store) ReplaceArtifacts(ctx context.Context, artifacts []StoredArtifact
 insert into artifacts(
   source_id, fidelity, source_revision, privacy_class, normalized_text,
   content_hash, provenance_hash, window_start, window_end, language,
-  calendar_event_id, participants, updated_at
-) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  calendar_event_id, participants, ingest_flags, updated_at
+) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `)
 		if err != nil {
 			return err
@@ -121,6 +122,7 @@ insert into artifacts(
 				artifact.Language,
 				nullString(stored.CalendarEventID),
 				nullString(stored.Participants),
+				stored.IngestFlags,
 				updated,
 			); err != nil {
 				return err

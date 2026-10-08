@@ -16,12 +16,13 @@ const (
 )
 
 type Config struct {
-	Version         int    `toml:"version" json:"version"`
-	DBPath          string `toml:"db_path" json:"db_path"`
-	CacheDir        string `toml:"cache_dir" json:"cache_dir"`
-	LogDir          string `toml:"log_dir" json:"log_dir"`
-	OAuthClientPath string `toml:"oauth_client_path,omitempty" json:"oauth_client_path,omitempty"`
-	TokenPath       string `toml:"token_path,omitempty" json:"token_path,omitempty"`
+	Version         int      `toml:"version" json:"version"`
+	DBPath          string   `toml:"db_path" json:"db_path"`
+	CacheDir        string   `toml:"cache_dir" json:"cache_dir"`
+	LogDir          string   `toml:"log_dir" json:"log_dir"`
+	MeetFolderRoots []string `toml:"meet_folder_roots" json:"meet_folder_roots"`
+	OAuthClientPath string   `toml:"oauth_client_path,omitempty" json:"oauth_client_path,omitempty"`
+	TokenPath       string   `toml:"token_path,omitempty" json:"token_path,omitempty"`
 }
 
 func App() ckconfig.App {
@@ -46,6 +47,7 @@ func Defaults() (Config, string, error) {
 		DBPath:          paths.DBPath,
 		CacheDir:        paths.CacheDir,
 		LogDir:          paths.LogDir,
+		MeetFolderRoots: []string{"Google Meet"},
 		OAuthClientPath: filepath.Join(home, ".config", "gmeetcrawl", "oauth-client.json"),
 		TokenPath:       filepath.Join(home, ".config", "gmeetcrawl", "token.json"),
 	}
@@ -96,6 +98,9 @@ func Load(configPath string) (Config, string, error) {
 			return Config{}, resolved, err
 		}
 		cfg.LogDir = paths.LogDir
+	}
+	if len(cfg.MeetFolderRoots) == 0 {
+		cfg.MeetFolderRoots = []string{"Google Meet"}
 	}
 	return cfg, resolved, nil
 }

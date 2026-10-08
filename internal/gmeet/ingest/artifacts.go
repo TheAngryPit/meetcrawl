@@ -3,7 +3,6 @@ package ingest
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -36,10 +35,6 @@ func BuildArtifacts(
 	if err != nil {
 		return nil, nil, err
 	}
-	events, err := client.ListCalendarEvents(ctx)
-	if err != nil {
-		events = nil
-	}
 	var rows []StoredRow
 	var driveRows []DriveRecord
 	for _, doc := range docs {
@@ -51,18 +46,9 @@ func BuildArtifacts(
 		if err != nil {
 			return nil, nil, err
 		}
-		ev := MatchCalendarEvent(events, doc.ID, doc.ModifiedTime)
 		window := source.Window{Start: doc.ModifiedTime}
 		calendarID := ""
 		participants := ""
-		if ev != nil {
-			window.Start = ev.Start
-			window.End = ev.End
-			calendarID = ev.ICalUID
-			if ev.AttendeeCount > 0 {
-				participants = strconv.Itoa(ev.AttendeeCount)
-			}
-		}
 		revision := doc.RevisionID
 		if revision == "" {
 			revision = doc.ModifiedTime.UTC().Format(time.RFC3339Nano)

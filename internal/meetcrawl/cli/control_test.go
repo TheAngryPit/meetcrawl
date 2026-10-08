@@ -53,6 +53,8 @@ func TestShippedCrawlbarManifestMatchesCommand(t *testing.T) {
 	}
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("GOTELEMETRY", "off")
+	t.Setenv("GOCACHE", filepath.Join(home, "go-cache"))
 	for _, key := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME"} {
 		t.Setenv(key, "")
 	}

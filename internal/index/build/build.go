@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TheAngryPit/meetcrawl/internal/calendar/enrich"
+	calprovider "github.com/TheAngryPit/meetcrawl/internal/calendar/provider"
 	"github.com/TheAngryPit/meetcrawl/internal/index"
 	"github.com/TheAngryPit/meetcrawl/internal/index/archive"
 	"github.com/TheAngryPit/meetcrawl/internal/index/crawler"
@@ -23,6 +25,7 @@ type Options struct {
 	IndexDBPath string
 	Sources     []SourceArchive
 	Privacy     privacy.Config
+	Calendar    calprovider.Options
 }
 
 type Result struct {
@@ -43,6 +46,11 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	if len(rows) == 0 {
 		return Result{}, fmt.Errorf("index: no artifacts in crawler archives")
 	}
+	events, err := calprovider.ListEvents(ctx, opts.Calendar)
+	if err != nil {
+		return Result{}, fmt.Errorf("index: calendar enrichment: %w", err)
+	}
+	enrich.ApplyRows(rows, events)
 	privacyCfg, err := opts.Privacy.Compile()
 	if err != nil {
 		return Result{}, err

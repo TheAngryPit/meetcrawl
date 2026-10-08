@@ -27,6 +27,7 @@ type CalendarEvent struct {
 	End           time.Time
 	AttendeeCount int
 	AttachmentIDs []string
+	HangoutLink   string
 }
 
 type Client interface {

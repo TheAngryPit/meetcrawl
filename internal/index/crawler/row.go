@@ -20,5 +20,6 @@ type Row struct {
 	WindowEnd      time.Time
 	Language       string
 	CalendarICal   string
+	MeetLink       string
 	Participants   string
 }

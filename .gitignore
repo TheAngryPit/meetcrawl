@@ -33,6 +33,9 @@ go.work.sum
 *.db
 *.db-wal
 *.db-shm
+!testdata/**/*.db
+!testdata/**/*.db-wal
+!testdata/**/*.db-shm
 proof/
 
 # OAuth token and credential JSON files

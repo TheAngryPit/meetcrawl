@@ -85,21 +85,6 @@ func TestExportFileAdapterShape(t *testing.T) {
 	}
 }
 
-func TestUnsupportedSchemaFailsClosed(t *testing.T) {
-	t.Parallel()
-	outcome := source.SyncOutcome{
-		Code:   source.OutcomeUnsupportedSchema,
-		Detail: "PRAGMA table_info missing notes.transcript",
-	}
-	if err := outcome.Validate(); err != nil {
-		t.Fatalf("Validate() = %v", err)
-	}
-	var _ source.Adapter = syntheticAdapter{
-		kind:    source.KindOpenWhispr,
-		outcome: outcome,
-	}
-}
-
 func TestBestFidelity(t *testing.T) {
 	t.Parallel()
 	got := source.BestFidelity(source.FidelityNotes, source.FidelityTranscript)

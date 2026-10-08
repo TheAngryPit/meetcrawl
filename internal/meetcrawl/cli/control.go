@@ -2,8 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"runtime"
 	"strings"
 
 	mconfig "github.com/TheAngryPit/meetcrawl/internal/meetcrawl/config"
@@ -11,13 +10,11 @@ import (
 )
 
 func ControlManifest(configPath string, cfg mconfig.Config) control.Manifest {
+	_ = configPath
+	_ = cfg
 	manifest := control.NewManifest("meetcrawl", "Meetings Index", "meetcrawl")
 	manifest.Description = "Local-first meetings index joining whispcrawl and gmeetcrawl archives."
-	manifest.Paths = control.Paths{
-		DefaultConfig:   portableHomePath(configPath),
-		ConfigEnv:       mconfig.ConfigEnv,
-		DefaultDatabase: portableHomePath(cfg.DBPath),
-	}
+	manifest.Paths = portableManifestPaths()
 	manifest.Capabilities = []string{"metadata", "status", "doctor", "index", "search"}
 	manifest.Commands = map[string]control.Command{
 		"metadata": {Title: "Metadata", Argv: []string{"meetcrawl", "metadata", "--json"}, JSON: true},
@@ -71,23 +68,21 @@ func ValidateManifest(m control.Manifest) error {
 	return nil
 }
 
-// portableHomePath rewrites absolute paths under the user home as ~/… so crawlbar
-// manifests stay portable. crawlkit.config.ExpandHome accepts ~/ at runtime.
-func portableHomePath(path string) string {
-	path = strings.TrimSpace(path)
-	if path == "" {
-		return path
+// portableManifestPaths returns crawlkit default locations as ~/… strings (see
+// crawlkit config.platformPaths fallbacks). Manifest paths ignore XDG_* overrides
+// so shipped crawlbar JSON stays copy-safe; MEETCRAWL_CONFIG still wins at runtime.
+func portableManifestPaths() control.Paths {
+	out := control.Paths{ConfigEnv: mconfig.ConfigEnv}
+	switch runtime.GOOS {
+	case "darwin":
+		out.DefaultConfig = "~/Library/Application Support/meetcrawl/config.toml"
+		out.DefaultDatabase = "~/Library/Application Support/meetcrawl/meetcrawl.db"
+	case "windows":
+		out.DefaultConfig = "~/AppData/Local/meetcrawl/config.toml"
+		out.DefaultDatabase = "~/AppData/Local/meetcrawl/meetcrawl.db"
+	default:
+		out.DefaultConfig = "~/.config/meetcrawl/config.toml"
+		out.DefaultDatabase = "~/.local/share/meetcrawl/meetcrawl.db"
 	}
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
-		return path
-	}
-	if path == home {
-		return "~"
-	}
-	prefix := home + string(filepath.Separator)
-	if strings.HasPrefix(path, prefix) {
-		return "~/" + strings.TrimPrefix(path, prefix)
-	}
-	return path
+	return out
 }

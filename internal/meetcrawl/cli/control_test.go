@@ -17,8 +17,6 @@ import (
 )
 
 func TestMetadataJSONControlSchema(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
 	manifest := mustManifest(t)
 	if err := validateManifestExported(manifest); err != nil {
 		t.Fatal(err)

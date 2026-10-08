@@ -1,0 +1,79 @@
+{
+  "schema_version": "crawlkit.control.v1",
+  "id": "meetcrawl",
+  "display_name": "Meetings Index",
+  "description": "Local-first meetings index joining whispcrawl and gmeetcrawl archives.",
+  "binary": {
+    "name": "meetcrawl"
+  },
+  "branding": {},
+  "paths": {
+    "default_config": "~/.config/meetcrawl/config.toml",
+    "config_env": "MEETCRAWL_CONFIG",
+    "default_database": "~/.local/share/meetcrawl/meetcrawl.db"
+  },
+  "commands": {
+    "doctor": {
+      "title": "Doctor",
+      "argv": [
+        "meetcrawl",
+        "doctor",
+        "--json"
+      ],
+      "json": true
+    },
+    "index": {
+      "title": "Index",
+      "argv": [
+        "meetcrawl",
+        "index",
+        "--json"
+      ],
+      "json": true,
+      "mutates": true
+    },
+    "metadata": {
+      "title": "Metadata",
+      "argv": [
+        "meetcrawl",
+        "metadata",
+        "--json"
+      ],
+      "json": true
+    },
+    "search": {
+      "title": "Search",
+      "argv": [
+        "meetcrawl",
+        "search",
+        "--json"
+      ],
+      "json": true
+    },
+    "status": {
+      "title": "Status",
+      "argv": [
+        "meetcrawl",
+        "status",
+        "--json"
+      ],
+      "json": true
+    }
+  },
+  "capabilities": [
+    "metadata",
+    "status",
+    "doctor",
+    "index",
+    "search"
+  ],
+  "privacy": {
+    "contains_private_messages": true,
+    "exports_secrets": false,
+    "local_only_scopes": [
+      "whispcrawl SQLite archive",
+      "gmeetcrawl SQLite archive",
+      "meetcrawl index SQLite archive"
+    ]
+  }
+}

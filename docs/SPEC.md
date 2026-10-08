@@ -79,7 +79,7 @@ FTS5 uses `unicode61 remove_diacritics 2`, so pt-PT text matches with or without
 
 ## 8. Scope
 **Phase 0 (gate, before code):** check whether Minutes (`silverstein/minutes`) would accept upstream importers for OpenWhispr/Gemini. If yes, reconsider the build; record the answer in `docs/decisions/0001-minutes.md`.
-**Phase 1 (in):** whispcrawl, gmeetcrawl, index, SKILL.md, read-only stdio MCP, crawlbar manifest, synthetic fixtures, proof script, README, MIT LICENSE.
+**Phase 1 (in):** whispcrawl, gmeetcrawl, generic export-file adapter (VTT/SRT/TXT/MD, Kind export-file), index, SKILL.md, read-only stdio MCP, crawlbar manifest, synthetic fixtures, proof script, README, MIT LICENSE.
 **Out of scope:** graincrawl wiring; writes to any source; crawlkit `remote`/D1, Git mirror, snapshot sharing; HTTP MCP; embeddings or semantic search;
 LLM summarization; audio capture or transcription (OpenWhispr owns it); hosted or paid tier; a GUI or TUI beyond what crawlkit gives for free.
 
@@ -98,9 +98,9 @@ make check && scripts/proof.sh      # writes proof/summary.json and proof/*.log
 7. A whispcrawl fixture with an unknown schema exits non-zero with `unsupported_schema`.
 
 ## 10. Open questions
-1. Settled: name is `meetcrawl`; README title is `# meetcrawl 🎙️ — Your meetings, on the record. Locally.` and the README ends with the credit line "Built by a storyteller who builds the worlds he imagines." linking to https://github.com/TheAngryPit. Still open: should a generic exported-file adapter (VTT/SRT/TXT/Markdown from any tool) join phase 1?
+1. Settled: name is `meetcrawl`; README title is `# meetcrawl 🎙️ — Your meetings, on the record. Locally.` and the README ends with the credit line "Built by a storyteller who builds the worlds he imagines." linking to https://github.com/TheAngryPit. Settled: the generic export-file adapter (VTT/SRT/TXT/MD, Kind export-file) joins phase 1.
 2. CrawlBar's own `docs/control-protocol.md` wasn't in the research. Confirm `~/.crawlbar/apps/*.json` accepts a plain `crawlkit.control.v1` manifest, or what extra fields it needs.
-3. gmeetcrawl auth: its own OAuth desktop client (user supplies client JSON) vs reusing an existing `gog` login. Is `drive.readonly` acceptable, or try a narrower scope?
+3. Settled: gmeetcrawl uses its own OAuth desktop client; the user supplies the client JSON. The token lives in the OS keychain or a 0600 file outside the archive, not via `gog`. Scopes stay `drive.readonly` and `calendar.events.readonly` (no narrower scope).
 4. How to reliably tell Gemini notes Docs from transcript Docs (title pattern, folder, Calendar attachment). Needs one real sample, inspected by the user, never committed.
 5. Calendar source: inside gmeetcrawl (as drafted) or a separate calendar crawler? What does OpenWhispr's `calendar_event_id` refer to?
 6. Match window default (±10 min) and privacy-class rule format.

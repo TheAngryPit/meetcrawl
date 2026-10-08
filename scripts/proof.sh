@@ -169,8 +169,24 @@ run_rebuild_hash() {
   echo "${hash1}" >"${PROOF_DIR}/index-dump.hash"
 }
 
+run_metadata_deps_check() {
+  log "check 6: metadata control.v1 and no crawlkit/remote deps"
+  local meta_out schema
+  meta_out="$("${BINDIR}/meetcrawl" --json metadata 2>>"${PROOF_DIR}/metadata.log")"
+  echo "${meta_out}" >>"${PROOF_DIR}/metadata.log"
+  schema="$(json_get schema_version "${meta_out}")"
+  [[ "${schema}" == "crawlkit.control.v1" ]] || fail "metadata schema_version=${schema} want crawlkit.control.v1"
+  if (
+    cd "${REPO_ROOT}"
+    HOME="${BUILD_HOME}" GOWORK=off go list -deps ./...
+  ) | grep -Fq 'github.com/openclaw/crawlkit/remote'; then
+    fail "go list -deps contains crawlkit/remote"
+  fi
+  log "metadata control.v1 and deps ok (no crawlkit/remote)"
+}
+
 run_unsupported_schema() {
-  log "check 6: unsupported_schema fail-closed"
+  log "check 7: unsupported_schema fail-closed"
   local iso_home whisp_db gmeet_db
 
   iso_home="$(mktemp -d)"
@@ -215,10 +231,11 @@ summary = {
         "mcp_stdio_read_log",
         "fixture_sha256_unchanged",
         "index_rebuild_hash",
+        "metadata_control_v1_no_remote_deps",
         "unsupported_schema_fail_closed",
     ],
     "index_dump_hash": (root / "index-dump.hash").read_text().strip() if (root / "index-dump.hash").exists() else "",
-    "metadata_check": "skipped (meetcrawl metadata --json not implemented)",
+    "metadata_check": "passed",
 }
 (root / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
 PY
@@ -240,6 +257,7 @@ main() {
   assert_fixture_hashes_unchanged "${fixture_sha256_file}.before" "${fixture_sha256_file}.after"
   run_mcp_check
   run_rebuild_hash
+  run_metadata_deps_check
   run_unsupported_schema
   write_summary
   log "proof ok"

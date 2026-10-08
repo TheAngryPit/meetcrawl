@@ -29,6 +29,7 @@ Commands:
   index      Rebuild meetcrawl.db from crawler archives (read-only)
   status     Show index status
   search     Full-text search indexed meeting content
+  metadata   Emit crawlkit.control.v1 manifest
   mcp        Read-only MCP server on stdio
 
 Global flags:
@@ -67,6 +68,8 @@ func (a App) Run(ctx context.Context, args []string) error {
 		return a.runStatus(ctx, stdout, flags)
 	case "search":
 		return a.runSearch(ctx, stdout, flags, cmdArgs)
+	case "metadata":
+		return a.runMetadata(ctx, stdout, flags)
 	case "mcp":
 		return mcpserver.Run(ctx, mcpserver.Options{ConfigPath: flags.ConfigPath})
 	case "help":
@@ -124,6 +127,24 @@ func (a App) runInit(w io.Writer, flags GlobalFlags) error {
 	printKV(w, "config", path)
 	printKV(w, "database", cfg.DBPath)
 	printKV(w, "reads_db", cfg.ReadsDBPath)
+	return nil
+}
+
+func (a App) runMetadata(ctx context.Context, w io.Writer, flags GlobalFlags) error {
+	_ = ctx
+	cfg, configPath, err := mconfig.Load(flags.ConfigPath)
+	if err != nil {
+		return err
+	}
+	manifest := ControlManifest(configPath, cfg)
+	if err := ValidateManifest(manifest); err != nil {
+		return err
+	}
+	if flags.JSON {
+		return writeJSON(w, manifest)
+	}
+	printKV(w, "id", manifest.ID)
+	printKV(w, "binary", manifest.Binary.Name)
 	return nil
 }
 

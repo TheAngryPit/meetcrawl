@@ -9,9 +9,6 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/source"
 )
 
-const matchLead = 10 * time.Minute
-const matchTrail = 10 * time.Minute
-
 // MatchEvent picks a calendar event for row using docs/SPEC.md §10 Q5 order:
 // explicit calendar_event_id, Meet link (attachment or hangout), then time overlap.
 func MatchEvent(row crawler.Row, events []calendar.Event) *calendar.Event {
@@ -73,12 +70,10 @@ func windowOverlaps(start, end, point time.Time) bool {
 	if start.IsZero() {
 		return false
 	}
-	windowStart := start.Add(-matchLead)
+	windowStart := start
 	windowEnd := end
 	if windowEnd.IsZero() {
 		windowEnd = start.Add(2 * time.Hour)
-	} else {
-		windowEnd = windowEnd.Add(matchTrail)
 	}
 	return !point.Before(windowStart) && !point.After(windowEnd)
 }

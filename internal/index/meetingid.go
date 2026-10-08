@@ -11,9 +11,6 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/source"
 )
 
-const matchLead = 10 * time.Minute
-const matchTrail = 10 * time.Minute
-
 type calendarEvent struct {
 	ICalUID string
 	Start   time.Time
@@ -104,12 +101,10 @@ func windowOverlaps(ev calendarEvent, row crawler.Row) bool {
 	if ev.Start.IsZero() {
 		return false
 	}
-	windowStart := ev.Start.Add(-matchLead)
+	windowStart := ev.Start
 	windowEnd := ev.End
 	if windowEnd.IsZero() {
 		windowEnd = ev.Start.Add(2 * time.Hour)
-	} else {
-		windowEnd = windowEnd.Add(matchTrail)
 	}
 	point := row.WindowStart
 	if point.IsZero() {

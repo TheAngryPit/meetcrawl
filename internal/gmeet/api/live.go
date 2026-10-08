@@ -55,15 +55,25 @@ func (c *LiveClient) ListDocs(ctx context.Context, folderRoots []string) ([]Driv
 }
 
 func (c *LiveClient) ExportDocument(ctx context.Context, fileID string) (string, string, error) {
-	md, errMD := c.exportBytes(ctx, fileID, "text/markdown")
-	plain, errPlain := c.exportBytes(ctx, fileID, "text/plain")
-	if strings.TrimSpace(md) == "" && strings.TrimSpace(plain) == "" {
-		if errMD != nil && errPlain != nil {
-			return "", "", fmt.Errorf("drive export %s: %v; %v", fileID, errMD, errPlain)
-		}
+	md, err := c.exportBytes(ctx, fileID, "text/markdown")
+	if err != nil {
+		return "", "", fmt.Errorf("drive export %s: %w", fileID, err)
+	}
+	if strings.TrimSpace(md) == "" {
 		return "", "", fmt.Errorf("drive export %s is empty", fileID)
 	}
-	return md, plain, nil
+	return md, "", nil
+}
+
+func (c *LiveClient) ExportPlainText(ctx context.Context, fileID string) (string, error) {
+	plain, err := c.exportBytes(ctx, fileID, "text/plain")
+	if err != nil {
+		return "", fmt.Errorf("drive export %s: %w", fileID, err)
+	}
+	if strings.TrimSpace(plain) == "" {
+		return "", fmt.Errorf("drive export %s is empty", fileID)
+	}
+	return plain, nil
 }
 
 func (c *LiveClient) exportBytes(ctx context.Context, fileID, mimeType string) (string, error) {

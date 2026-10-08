@@ -1,4 +1,4 @@
-# **Observações**
+# **📝 Observações**
 
 ## Reunião em 15 de jan. de 2026 às 14:00 WET
 
@@ -16,7 +16,7 @@ Zep marn.
 ### Detalhes
 Plix korv detalhe sintético.
 
-# **Transcrição**
+# **🎙️ Transcrição**
 
 ## Reunião em 15 de jan. de 2026 às 14:00 WET
 

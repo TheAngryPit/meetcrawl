@@ -76,7 +76,9 @@ func (c *LiveClient) findFolderByPath(ctx context.Context, path string) (string,
 }
 
 func escapeDriveQuery(s string) string {
-	return strings.ReplaceAll(s, "'", "\\'")
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, "'", "\\'")
+	return s
 }
 
 func (c *LiveClient) walkFolder(ctx context.Context, folderID, path string, out map[string]DriveDoc) error {

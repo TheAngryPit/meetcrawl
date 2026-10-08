@@ -11,6 +11,9 @@ func TestIsGeminiDocTitle(t *testing.T) {
 	if !detect.IsGeminiDocTitle("Reunião iniciada a 2026/01/15 14:00 WET – Notas do Gemini") {
 		t.Fatal("expected PT title match")
 	}
+	if !detect.IsGeminiDocTitle("Reunião iniciada a 2026/01/15 14:00 GMT+01:00 - Notas do Gemini") {
+		t.Fatal("expected PT title with offset TZ and hyphen")
+	}
 	if !detect.IsGeminiDocTitle("Synthetic standup - Notes by Gemini") {
 		t.Fatal("expected EN title match")
 	}

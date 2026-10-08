@@ -8,6 +8,7 @@
       "modifiedTime": "2026-03-01T09:00:00Z",
       "revisionId": "rev-bad-001",
       "parentPath": "Google Meet",
+      "exportMarkdownPath": "exports/broken.md",
       "exportPlainPath": "exports/broken.txt"
     }
   ],

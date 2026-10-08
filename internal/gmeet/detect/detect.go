@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var ptGeminiTitle = regexp.MustCompile(`(?i)^Reunião iniciada a \d{4}/\d{2}/\d{2} \d{2}:\d{2} [A-Z]+ – Notas do Gemini$`)
+var ptGeminiTitle = regexp.MustCompile(`(?i)^Reunião iniciada a \d{4}/\d{2}/\d{2} \d{2}:\d{2} \S+ [-–] Notas do Gemini$`)
 
 // IsGeminiDocTitle reports whether a Drive file name matches Meet/Gemini notes doc titles.
 func IsGeminiDocTitle(title string) bool {

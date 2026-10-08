@@ -14,24 +14,50 @@ type Result struct {
 	Flags          []string
 }
 
+const tabEmoji = `(?:[\p{So}\p{Sk}]\x{FE0F}?\s*)?`
+
 var (
-	markdownNotesHeading = regexp.MustCompile(`(?im)^#\s*\*{0,2}\s*(Observações|Notes(?:\s+by\s+Gemini)?)\s*\*{0,2}\s*$`)
-	markdownTranscript   = regexp.MustCompile(`(?im)^#\s*\*{0,2}\s*(Transcrição|Transcript)\s*\*{0,2}\s*$`)
-	plainNotesLine       = regexp.MustCompile(`(?im)^\s*(?:[\p{So}\p{Sk}]\s*)?(Observações|Notes(?:\s+by\s+Gemini)?)\s*$`)
-	plainTranscriptLine  = regexp.MustCompile(`(?im)^(?:[\p{So}\p{Sk}]\s*)?(Transcrição|Transcript)\s*$`)
+	markdownNotesHeading = regexp.MustCompile(`(?im)^#\s*\*{0,2}\s*` + tabEmoji + `(Observações|Notes(?:\s+by\s+Gemini)?)\s*\*{0,2}\s*$`)
+	markdownTranscript   = regexp.MustCompile(`(?im)^#\s*\*{0,2}\s*` + tabEmoji + `(Transcrição|Transcript)\s*\*{0,2}\s*$`)
+	plainNotesLine       = regexp.MustCompile(`(?im)^\s*` + tabEmoji + `(Observações|Notes(?:\s+by\s+Gemini)?)\s*$`)
+	plainTranscriptLine  = regexp.MustCompile(`(?im)^\s*` + tabEmoji + `(Transcrição|Transcript)\s*$`)
 )
 
 // Parse prefers markdown export text and falls back to text/plain.
 func Parse(markdown, plain string) (Result, error) {
+	res, format, err := ParseWithFormat(markdown, plain)
+	if err != nil {
+		return Result{}, err
+	}
+	_ = format
+	return res, nil
+}
+
+// ParseWithFormat splits export text and reports whether markdown or plain matched.
+func ParseWithFormat(markdown, plain string) (Result, string, error) {
 	if body := strings.TrimSpace(markdown); body != "" {
-		if res, err := parseMarkdown(body); err == nil {
-			return res, nil
+		if res, err := ParseMarkdown(body); err == nil {
+			return res, "markdown", nil
 		}
 	}
 	if body := strings.TrimSpace(plain); body != "" {
-		return parsePlain(body)
+		res, err := ParsePlain(body)
+		if err != nil {
+			return Result{}, "", err
+		}
+		return res, "plain", nil
 	}
-	return Result{}, fmt.Errorf("gemini export: empty body")
+	return Result{}, "", fmt.Errorf("gemini export: empty body")
+}
+
+// ParseMarkdown splits a Drive text/markdown export body.
+func ParseMarkdown(body string) (Result, error) {
+	return parseMarkdown(body)
+}
+
+// ParsePlain splits a Drive text/plain export body.
+func ParsePlain(body string) (Result, error) {
+	return parsePlain(body)
 }
 
 func parseMarkdown(body string) (Result, error) {

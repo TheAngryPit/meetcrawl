@@ -47,7 +47,7 @@ func BuildArtifacts(
 		if err != nil {
 			return nil, nil, err
 		}
-		parsed, err := split.Parse(md, plain)
+		parsed, err := parseExport(ctx, client, doc.ID, md, plain)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -90,6 +90,20 @@ func BuildArtifacts(
 		return nil, nil, fmt.Errorf("no Meet/Gemini docs matched ingest rules")
 	}
 	return rows, driveRows, nil
+}
+
+func parseExport(ctx context.Context, client api.Client, fileID, md, plain string) (split.Result, error) {
+	parsed, _, err := split.ParseWithFormat(md, plain)
+	if err == nil {
+		return parsed, nil
+	}
+	if strings.TrimSpace(plain) == "" {
+		plain, err = client.ExportPlainText(ctx, fileID)
+		if err != nil {
+			return split.Result{}, err
+		}
+	}
+	return split.Parse("", plain)
 }
 
 func artifactRow(

@@ -32,6 +32,7 @@ type CalendarEvent struct {
 type Client interface {
 	ListDocs(ctx context.Context, folderRoots []string) ([]DriveDoc, error)
 	ExportDocument(ctx context.Context, fileID string) (markdown string, plain string, err error)
+	ExportPlainText(ctx context.Context, fileID string) (string, error)
 	ListCalendarEvents(ctx context.Context) ([]CalendarEvent, error)
 }
 
@@ -88,7 +89,7 @@ func (c *FixtureClient) ExportDocument(_ context.Context, fileID string) (string
 		if f.ID != fileID {
 			continue
 		}
-		var md, plain string
+		var md string
 		var err error
 		if f.ExportMarkdownPath != "" {
 			md, err = fixture.ReadExport(f.ExportMarkdownPath)
@@ -96,22 +97,29 @@ func (c *FixtureClient) ExportDocument(_ context.Context, fileID string) (string
 				return "", "", err
 			}
 		}
+		if md == "" {
+			return "", "", fmt.Errorf("fixture: drive file %q has no markdown export", fileID)
+		}
+		return md, "", nil
+	}
+	return "", "", fmt.Errorf("fixture: unknown drive file id %q", fileID)
+}
+
+func (c *FixtureClient) ExportPlainText(_ context.Context, fileID string) (string, error) {
+	for _, f := range c.manifest.DriveFiles {
+		if f.ID != fileID {
+			continue
+		}
 		path := f.ExportPlainPath
 		if path == "" {
 			path = f.ExportPath
 		}
-		if path != "" {
-			plain, err = fixture.ReadExport(path)
-			if err != nil {
-				return "", "", err
-			}
+		if path == "" {
+			return "", fmt.Errorf("fixture: drive file %q has no plain export", fileID)
 		}
-		if md == "" && plain == "" {
-			return "", "", fmt.Errorf("fixture: drive file %q has no export bytes", fileID)
-		}
-		return md, plain, nil
+		return fixture.ReadExport(path)
 	}
-	return "", "", fmt.Errorf("fixture: unknown drive file id %q", fileID)
+	return "", fmt.Errorf("fixture: unknown drive file id %q", fileID)
 }
 
 func (c *FixtureClient) ListCalendarEvents(context.Context) ([]CalendarEvent, error) {

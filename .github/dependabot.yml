@@ -1,6 +1,9 @@
 version: 2
 updates:
-  # gomod is added once go.mod exists.
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

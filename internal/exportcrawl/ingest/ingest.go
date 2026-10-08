@@ -1,6 +1,8 @@
 package ingest
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -140,6 +142,6 @@ func readFileReadOnly(path string) ([]byte, error) {
 }
 
 func sourceIDForPath(name string) string {
-	base := strings.ToLower(strings.TrimSuffix(name, filepath.Ext(name)))
-	return "sha256:" + strings.ReplaceAll(base, " ", "-")
+	sum := sha256.Sum256([]byte(filepath.Base(name)))
+	return "sha256:" + hex.EncodeToString(sum[:])
 }

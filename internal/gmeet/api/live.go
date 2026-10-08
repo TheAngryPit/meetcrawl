@@ -2,25 +2,16 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
-	"os"
 	"strings"
 	"time"
 
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
+	"github.com/TheAngryPit/meetcrawl/internal/gmeet/oauth"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
-)
-
-const (
-	scopeDriveReadonly    = "https://www.googleapis.com/auth/drive.readonly"
-	scopeCalendarReadonly = "https://www.googleapis.com/auth/calendar.events.readonly"
 )
 
 type LiveClient struct {
@@ -35,7 +26,8 @@ func NewLive(ctx context.Context, cfg gconfig.Config) (*LiveClient, error) {
 	if strings.TrimSpace(cfg.TokenPath) == "" {
 		return nil, fmt.Errorf("token_path is required for live sync (or use --fixture)")
 	}
-	client, err := oauthHTTPClient(ctx, cfg.OAuthClientPath, cfg.TokenPath)
+	store := oauth.DefaultTokenStore(cfg.TokenPath)
+	client, err := oauth.HTTPClient(ctx, cfg.OAuthClientPath, store)
 	if err != nil {
 		return nil, err
 	}
@@ -48,26 +40,6 @@ func NewLive(ctx context.Context, cfg gconfig.Config) (*LiveClient, error) {
 		return nil, fmt.Errorf("calendar service: %w", err)
 	}
 	return &LiveClient{drive: driveSvc, calendar: calSvc}, nil
-}
-
-func oauthHTTPClient(ctx context.Context, clientPath, tokenPath string) (*http.Client, error) {
-	clientJSON, err := os.ReadFile(clientPath)
-	if err != nil {
-		return nil, fmt.Errorf("read oauth client: %w", err)
-	}
-	tokenJSON, err := os.ReadFile(tokenPath)
-	if err != nil {
-		return nil, fmt.Errorf("read oauth token: %w", err)
-	}
-	cfg, err := google.ConfigFromJSON(clientJSON, scopeDriveReadonly, scopeCalendarReadonly)
-	if err != nil {
-		return nil, fmt.Errorf("parse oauth client: %w", err)
-	}
-	var token oauth2.Token
-	if err := json.Unmarshal(tokenJSON, &token); err != nil {
-		return nil, fmt.Errorf("parse oauth token: %w", err)
-	}
-	return oauth2.NewClient(ctx, cfg.TokenSource(ctx, &token)), nil
 }
 
 func (c *LiveClient) ListDocs(ctx context.Context) ([]DriveDoc, error) {

@@ -17,9 +17,9 @@ type Options struct {
 }
 
 type handlerEnv struct {
-	index    *archive.ReadOnlyStore
-	logPath  string
-	allow    archive.RestrictedAllowlist
+	index   *archive.ReadOnlyStore
+	logPath string
+	allow   archive.RestrictedAllowlist
 }
 
 // Run serves meetcrawl MCP tools on stdio until ctx is cancelled.

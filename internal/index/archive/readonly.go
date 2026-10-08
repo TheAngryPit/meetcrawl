@@ -46,13 +46,13 @@ type MeetingSummary struct {
 }
 
 type MeetingDetail struct {
-	MeetingID     string              `json:"meeting_id"`
-	BestFidelity  string              `json:"best_fidelity"`
-	PrivacyClass  string              `json:"privacy_class"`
-	ICalUID       string              `json:"ical_uid,omitempty"`
-	EventStartUTC string              `json:"event_start_utc,omitempty"`
-	Fidelities    []string            `json:"fidelities"`
-	Contents      []MeetingContent    `json:"contents"`
+	MeetingID     string           `json:"meeting_id"`
+	BestFidelity  string           `json:"best_fidelity"`
+	PrivacyClass  string           `json:"privacy_class"`
+	ICalUID       string           `json:"ical_uid,omitempty"`
+	EventStartUTC string           `json:"event_start_utc,omitempty"`
+	Fidelities    []string         `json:"fidelities"`
+	Contents      []MeetingContent `json:"contents"`
 }
 
 type MeetingContent struct {

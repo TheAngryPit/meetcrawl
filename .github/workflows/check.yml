@@ -1,0 +1,71 @@
+name: check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        if: hashFiles('go.mod') != ''
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Docs and secret check
+        if: hashFiles('go.mod') == ''
+        shell: bash
+        run: |
+          set -eu
+          fail=0
+          for f in README.md docs/SPEC.md SECURITY.md CONTRIBUTING.md LICENSE; do
+            if [ ! -f "$f" ]; then
+              echo "missing $f"
+              fail=1
+            fi
+          done
+
+          while IFS= read -r path; do
+            base="${path##*/}"
+            case "$base" in
+              .env*|*.db|*.db-wal|*.db-shm|*credential*.json|client_secret*.json|*oauth*token*.json|token.json|tokens.json)
+                echo "tracked forbidden file: $path"
+                fail=1
+                ;;
+            esac
+          done < <(git ls-files)
+
+          # git grep exits 1 when nothing matches. That is success.
+          grep_status=0
+          git grep -I -n -E -e 'AKIA[0-9A-Z]{16}|-----BEGIN (RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[0-9A-Za-z-]{10,}' -- . || grep_status=$?
+          if [ "$grep_status" -eq 0 ]; then
+            echo "possible secret material in tracked files"
+            fail=1
+          elif [ "$grep_status" -ne 1 ]; then
+            echo "git grep failed with status $grep_status"
+            exit "$grep_status"
+          fi
+
+          if [ "$fail" -ne 0 ]; then
+            exit "$fail"
+          fi
+          echo "docs and secret check passed"
+
+      - name: Make check
+        if: hashFiles('go.mod') != ''
+        shell: bash
+        run: make check

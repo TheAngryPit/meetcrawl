@@ -12,4 +12,4 @@ Open a pull request. On a clean Linux runner with no network credentials, this c
 make check && scripts/proof.sh
 ```
 
-Phase 1 adds `scripts/proof.sh`. It is not in this repository yet.
+Phase 1 ships `scripts/proof.sh` at the repository root.

@@ -1,6 +1,6 @@
 # meetcrawl verification map
 
-This directory is the maintained source for verifying meetcrawl. There is no app to launch yet; recipes exercise the repo, CI gates, and (when Phase 1 lands) the headless proof in docs/SPEC.md section 9.
+This directory is the maintained source for verifying meetcrawl. Recipes exercise the repo, CI gates, and the headless proof in docs/SPEC.md section 9 when `scripts/proof.sh` is present.
 
 ## Baseline preconditions
 
@@ -18,7 +18,7 @@ This directory is the maintained source for verifying meetcrawl. There is no app
 ## Proof and skip reporting
 
 - Repo checks must match what CI runs today (docs/secret gate in `.github/workflows/check.yml` when `go.mod` is absent).
-- Phase 1 proof checks are **not drivable** until both `go.mod` and `scripts/proof.sh` exist; report `not runnable`, do not skip silently.
+- Phase 1 proof is **not drivable** until both `go.mod` and `scripts/proof.sh` exist; Doctor reports `not runnable`, do not skip silently.
 - Record feature ID and exit code in `$EVIDENCE_DIR/summary.txt`.
 
 ## Feature entry contract
@@ -30,4 +30,4 @@ Each feature file uses exactly four H2 sections: `Sub-features`, `How to get to 
 - [required-docs-and-ci](./required-docs-and-ci.md) — README, spec, security, contributing, CODEOWNERS, dependabot, check workflow.
 - [secrets-and-tracked-forbidden](./secrets-and-tracked-forbidden.md) — CI docs/secret check and forbidden tracked paths.
 - [spec-integrity](./spec-integrity.md) — SPEC hash unchanged across the run.
-- [phase1-headless-proof](./phase1-headless-proof.md) — section 9 proof script (not runnable until Phase 1 files land).
+- [phase1-headless-proof](./phase1-headless-proof.md) — section 9 headless proof via `scripts/proof.sh`.

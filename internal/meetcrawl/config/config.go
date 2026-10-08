@@ -23,6 +23,12 @@ type MCPConfig struct {
 	RestrictedAllowlist []string `toml:"restricted_allowlist" json:"restricted_allowlist"`
 }
 
+type CalendarConfig struct {
+	FixtureDir      string `toml:"fixture_dir,omitempty" json:"fixture_dir,omitempty"`
+	OAuthClientPath string `toml:"oauth_client_path,omitempty" json:"oauth_client_path,omitempty"`
+	TokenPath       string `toml:"token_path,omitempty" json:"token_path,omitempty"`
+}
+
 type Config struct {
 	Version       int            `toml:"version" json:"version"`
 	DBPath        string         `toml:"db_path" json:"db_path"`
@@ -31,6 +37,7 @@ type Config struct {
 	GmeetcrawlDB  string         `toml:"gmeetcrawl_db" json:"gmeetcrawl_db"`
 	ExportcrawlDB string         `toml:"exportcrawl_db" json:"exportcrawl_db"`
 	Privacy       privacy.Config `toml:"privacy" json:"privacy"`
+	Calendar      CalendarConfig `toml:"calendar" json:"calendar"`
 	MCP           MCPConfig      `toml:"mcp" json:"mcp"`
 }
 
@@ -66,6 +73,10 @@ func Defaults() (Config, string, error) {
 		WhispcrawlDB:  whispDefaults.DBPath,
 		GmeetcrawlDB:  gmeetDefaults.DBPath,
 		ExportcrawlDB: exportDefaults.DBPath,
+		Calendar: CalendarConfig{
+			OAuthClientPath: gmeetDefaults.OAuthClientPath,
+			TokenPath:       gmeetDefaults.TokenPath,
+		},
 	}
 	return cfg, paths.ConfigPath, nil
 }
@@ -94,6 +105,9 @@ func Load(configPath string) (Config, string, error) {
 	cfg.WhispcrawlDB = ckconfig.ExpandHome(cfg.WhispcrawlDB)
 	cfg.GmeetcrawlDB = ckconfig.ExpandHome(cfg.GmeetcrawlDB)
 	cfg.ExportcrawlDB = ckconfig.ExpandHome(cfg.ExportcrawlDB)
+	cfg.Calendar.FixtureDir = ckconfig.ExpandHome(cfg.Calendar.FixtureDir)
+	cfg.Calendar.OAuthClientPath = ckconfig.ExpandHome(cfg.Calendar.OAuthClientPath)
+	cfg.Calendar.TokenPath = ckconfig.ExpandHome(cfg.Calendar.TokenPath)
 	if cfg.DBPath == "" {
 		paths, err := App().DefaultPaths()
 		if err != nil {
@@ -124,6 +138,20 @@ func Load(configPath string) (Config, string, error) {
 			return Config{}, resolved, err
 		}
 		cfg.ExportcrawlDB = exportDefaults.DBPath
+	}
+	if cfg.Calendar.OAuthClientPath == "" {
+		gmeetDefaults, _, err := gconfig.Defaults()
+		if err != nil {
+			return Config{}, resolved, err
+		}
+		cfg.Calendar.OAuthClientPath = gmeetDefaults.OAuthClientPath
+	}
+	if cfg.Calendar.TokenPath == "" {
+		gmeetDefaults, _, err := gconfig.Defaults()
+		if err != nil {
+			return Config{}, resolved, err
+		}
+		cfg.Calendar.TokenPath = gmeetDefaults.TokenPath
 	}
 	return cfg, resolved, nil
 }

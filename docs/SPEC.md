@@ -47,8 +47,8 @@ Snapshot, backup, mirror (Git) and embed/vector are **not used in phase 1**. Pro
 **gmeetcrawl: Gemini/Meet Docs in Google Drive.**
 - Lists native Google Docs whose titles match Meet/Gemini patterns (Portuguese `Reunião iniciada … – Notas do Gemini` or English `… Notes by Gemini`). Folder scope comes from config `meet_folder_roots` (default `Google Meet`); each entry is a folder id or path. The folder filter limits search scope; title and exported body structure are the primary ingest signals. Docs may sit directly under the root folder or in a per-meeting subfolder.
 - Exports each Doc with Drive `files.export` under `drive.readonly` only (prefers `text/markdown`, falls back to `text/plain`). One Doc often contains two tabs; export returns both tabs in one body. Ingest splits on tab markers into separate notes and transcript artifacts linked by Drive file id (`<fileId>#notes`, `<fileId>#transcript`). Missing transcript tab → notes-only with flag `notes-only`. Missing notes tab → `unsupported_schema`.
-- OAuth scopes: read-only only (`drive.readonly`, `calendar.events.readonly`). Tokens live in the OS keychain or a 0600 file outside the archive.
-- Calendar events (iCalUID, start/end, attendee count) are optional enrichment for meeting keys; sync continues when Calendar is unavailable. Stores Drive file id, revision and modifiedTime for incremental sync.
+- OAuth scopes: read-only only (`drive.readonly`, `calendar.events.readonly`). Tokens live in the OS keychain or a 0600 file outside the archive. Drive sync does not depend on Calendar; calendar linking happens in meetcrawl core at index time (see section 6).
+- Stores Drive file id, revision and modifiedTime for incremental sync.
 - `--fixture <dir>` replays recorded synthetic API responses, so tests and proofs never need network or credentials. See `docs/gmeetcrawl-config.md`.
 
 **graincrawl: Granola (later, not phase 1).** Use upstream `openclaw/graincrawl` pinned to an exact version, not a fork.
@@ -57,9 +57,12 @@ The private API source (graincrawl's default) is forbidden; a config check rejec
 
 ## 6. Meetings index (`meetcrawl index`): thin, rebuildable, read-only over crawler archives
 Opens each crawler DB with `store.OpenReadOnly` and writes only `meetcrawl.db`. Deleting it and re-running `index` reproduces the same content (an ordered row dump hashes the same).
+
+**Calendar enrichment (shared core, optional).** Not a separate crawler. At `meetcrawl index`, meetcrawl may load Google Calendar events read-only (`calendar.events.readonly`) from the same OAuth token paths as gmeetcrawl config (`[calendar]` in meetcrawl config, or `--calendar-fixture <dir>` for synthetic replay). When there is no fixture, no token, or the Calendar API is unavailable, enrichment is skipped and ingest still succeeds (artifacts keep source-provided hints only). Match order for linking an artifact to an event: (1) explicit `calendar_event_id` on the artifact (OpenWhispr passthrough or prior hint), matched to event `iCalUID` or Google event id; (2) Meet link when present (Calendar attachment Drive file id on gmeet artifacts, or `hangoutLink` when a source supplies one); (3) time overlap (artifact window start within event start−10 min … end+10 min). Enrichment sets `calendar_event_id` / meeting windows from the matched event before `meeting_id` assignment.
+
 | Field / table | Rule |
 |---|---|
-| `meeting_id` | `sha256(iCalUID + "|" + event start UTC)` when an event matches. An artifact matches if its time range overlaps the event window (start−10 min, end+10 min; tunable). No event → `adhoc:` + sha256(source + source_id + start minute). |
+| `meeting_id` | `sha256(iCalUID + "|" + event start UTC)` when calendar enrichment matched an event (or the artifact already carried a resolvable `calendar_event_id`). No event → `adhoc:` + sha256(source + source_id + start minute). |
 | dedup | Many artifacts → one meeting. Identical normalized text (same `content_hash`) from two sources is stored once and lists both sources. |
 | `fidelity` | `transcript` > `notes` > `summary`; a meeting exposes the best available level plus the full list. |
 | `privacy_class` | `private` (default) · `restricted` (hidden from MCP unless allowlisted) · `shareable`. Set by config rules (calendar, folder, title regex) and never inferred from content. |
@@ -91,7 +94,7 @@ make check && scripts/proof.sh      # writes proof/summary.json and proof/*.log
 ```
 `scripts/proof.sh` uses a temp HOME and only `testdata/fixtures/` (synthetic, no real people or meetings). It must show:
 1. `whispcrawl sync --source-db <fixture>` and `gmeetcrawl sync --fixture <dir>` ingest the expected counts.
-2. `meetcrawl index` gives the expected meetings. One fixture meeting exists in both sources: it is deduped to a single `meeting_id` with fidelity `transcript`, and an unmatched note becomes `adhoc:`.
+2. `meetcrawl index --calendar-fixture <synthetic>` gives the expected meetings. One fixture meeting exists in both sources: calendar enrichment links gmeet and OpenWhispr to the same event, deduped to a single `meeting_id` with fidelity `transcript`, and an unmatched note becomes `adhoc:`.
 3. A pt-PT query without accents finds the accented fixture text.
 4. An MCP stdio session (`initialize`, `tools/list`, `search_meetings`) shows the untrusted prefix, hides `restricted` items, and adds exactly one `read_log` row per call.
 5. Source fixtures have the same sha256 before and after (read-only proof). Deleting `meetcrawl.db` and re-indexing gives an identical ordered-row-dump hash (rebuildable).
@@ -103,7 +106,7 @@ make check && scripts/proof.sh      # writes proof/summary.json and proof/*.log
 2. CrawlBar's own `docs/control-protocol.md` wasn't in the research. Confirm `~/.crawlbar/apps/*.json` accepts a plain `crawlkit.control.v1` manifest, or what extra fields it needs.
 3. Settled: gmeetcrawl uses its own OAuth desktop client; the user supplies the client JSON. The token lives in the OS keychain or a 0600 file outside the archive, not via `gog`. Scopes stay `drive.readonly` and `calendar.events.readonly` (no narrower scope).
 4. Settled: one native Gemini Doc holds notes and transcript tabs. Drive `files.export` (`text/markdown` or `text/plain`, `drive.readonly` only) returns both tabs in one body. Ingest splits on tab markers (locale-tolerant PT/EN). Title patterns and export structure are primary; `meet_folder_roots` (default `Google Meet`) scopes folder search only. Calendar attachment is optional enrichment, not required for ingest.
-5. Calendar source: inside gmeetcrawl (as drafted) or a separate calendar crawler? What does OpenWhispr's `calendar_event_id` refer to?
+5. Settled: Calendar is **not** a separate crawler and **not** owned by gmeetcrawl. It is optional, read-only enrichment in meetcrawl core at index time for every source (whispcrawl, gmeetcrawl, exportcrawl). Match order: explicit `calendar_event_id`, then Meet link (Drive attachment / hangout when present), then time overlap (±10 min). Scope: `calendar.events.readonly` only; no enrichment when there is no event or no auth. **OpenWhispr `calendar_event_id`:** whispcrawl reads `notes.calendar_event_id` from the supported OpenWhispr layout (`internal/whisp/schema`, synthetic fixture `testdata/fixtures/openwhispr/supported/transcriptions.db`) and stores it verbatim on each artifact as `calendar_event_id`. The repo does not ship OpenWhispr upstream semantics; meetcrawl treats non-empty values as a **Google Calendar iCalUID** match key (same identifier as `calendar_events[].iCalUID` in gmeet/export fixtures—see `cal-synthetic-001` in whispcrawl and `testdata/fixtures/calendar/synthetic/events.json`). Explicit id match also accepts the Google Calendar API event id when a source stores that instead of iCalUID.
 6. Match window default (±10 min) and privacy-class rule format.
 7. MCP transport: stdio only, or also birdclaw-style loopback HTTP + bearer token later?
 8. Which OpenWhispr versions to support first? Its local schema differs between published docs.

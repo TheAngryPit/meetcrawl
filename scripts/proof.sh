@@ -20,6 +20,7 @@ GMEET_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/gdrive/supported"
 GMEET_UNSUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/gdrive/unsupported"
 EXPORT_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/export-file/supported"
 EXPORT_UNSUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/export-file/unsupported"
+CALENDAR_FIX="${REPO_ROOT}/testdata/fixtures/calendar/synthetic"
 
 mkdir -p "${PROOF_DIR}"
 BINDIR="${PROOF_HOME}/bin"
@@ -121,7 +122,7 @@ run_index_checks() {
   "${BINDIR}/meetcrawl" init >>"${PROOF_DIR}/meetcrawl-init.log" 2>&1
   patch_meetcrawl_privacy
   local idx_out
-  idx_out="$("${BINDIR}/meetcrawl" --json index 2>>"${PROOF_DIR}/index.log")"
+  idx_out="$("${BINDIR}/meetcrawl" --json index --calendar-fixture "${CALENDAR_FIX}" 2>>"${PROOF_DIR}/index.log")"
   echo "${idx_out}" >>"${PROOF_DIR}/index.log"
   local meetings
   meetings="$(json_get result.meetings "${idx_out}")"
@@ -133,6 +134,11 @@ run_index_checks() {
   [[ "${dedup_fidelity}" == "transcript" ]] || fail "dedup best_fidelity=${dedup_fidelity} want transcript"
   adhoc_count="$(sqlite3 "${INDEX_DB}" "select count(*) from meetings where meeting_id like 'adhoc:%';")"
   [[ "${adhoc_count}" == "1" ]] || fail "adhoc meetings=${adhoc_count} want 1"
+
+  local enriched_ical
+  enriched_ical="$(sqlite3 "${INDEX_DB}" "select ical_uid from meetings where ical_uid = 'cal-synthetic-001' limit 1;")"
+  [[ "${enriched_ical}" == "cal-synthetic-001" ]] || fail "calendar enrichment missing ical_uid cal-synthetic-001"
+  log "calendar enrichment linked synthetic event"
 
   local search_out
   search_out="$("${BINDIR}/meetcrawl" --json search reuniao 2>>"${PROOF_DIR}/search.log")"
@@ -170,7 +176,7 @@ run_rebuild_hash() {
     HOME="${BUILD_HOME}" GOWORK=off go run ./scripts/proof_index_hash.go "${INDEX_DB}"
   )"
   rm -f "${INDEX_DB}"
-  "${BINDIR}/meetcrawl" --json index >>"${PROOF_DIR}/reindex.log" 2>&1
+  "${BINDIR}/meetcrawl" --json index --calendar-fixture "${CALENDAR_FIX}" >>"${PROOF_DIR}/reindex.log" 2>&1
   hash2="$(
     cd "${REPO_ROOT}"
     HOME="${BUILD_HOME}" GOWORK=off go run ./scripts/proof_index_hash.go "${INDEX_DB}"

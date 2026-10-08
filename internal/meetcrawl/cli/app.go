@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	calprovider "github.com/TheAngryPit/meetcrawl/internal/calendar/provider"
 	"github.com/TheAngryPit/meetcrawl/internal/index/build"
 	"github.com/TheAngryPit/meetcrawl/internal/index/reads"
 	mcpserver "github.com/TheAngryPit/meetcrawl/internal/mcp"
@@ -26,7 +27,7 @@ Usage:
 Commands:
   init       Create config, reads.db schema, and data directories
   doctor     Check crawler archive paths and index database
-  index      Rebuild meetcrawl.db from crawler archives (read-only)
+  index      Rebuild meetcrawl.db from crawler archives (read-only; optional --calendar-fixture)
   status     Show index status
   search     Full-text search indexed meeting content
   metadata   Emit crawlkit.control.v1 manifest
@@ -188,9 +189,18 @@ func (a App) runIndex(ctx context.Context, w io.Writer, flags GlobalFlags, args 
 	if override, ok := flagValue(args, "--exportcrawl-db"); ok {
 		exportDB = override
 	}
+	calendarOpts := calprovider.Options{
+		FixtureDir:      cfg.Calendar.FixtureDir,
+		OAuthClientPath: cfg.Calendar.OAuthClientPath,
+		TokenPath:       cfg.Calendar.TokenPath,
+	}
+	if override, ok := flagValue(args, "--calendar-fixture"); ok {
+		calendarOpts.FixtureDir = override
+	}
 	result, err := build.Run(ctx, build.Options{
 		IndexDBPath: cfg.DBPath,
 		Privacy:     cfg.Privacy,
+		Calendar:    calendarOpts,
 		Sources: []build.SourceArchive{
 			{Kind: source.KindOpenWhispr, Path: whispDB},
 			{Kind: source.KindGMeetGemini, Path: gmeetDB},

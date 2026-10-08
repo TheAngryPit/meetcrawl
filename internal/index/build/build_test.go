@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	calprovider "github.com/TheAngryPit/meetcrawl/internal/calendar/provider"
 	"github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
 	"github.com/TheAngryPit/meetcrawl/internal/gmeet/sync"
 	"github.com/TheAngryPit/meetcrawl/internal/index/archive"
@@ -59,8 +60,12 @@ func TestIndexDedupSearchAndRebuild(t *testing.T) {
 	}
 
 	indexDB := filepath.Join(root, "meetcrawl.db")
+	calendarFix := filepath.Join(repoRoot, "testdata", "fixtures", "calendar", "synthetic")
 	result, err := build.Run(context.Background(), build.Options{
 		IndexDBPath: indexDB,
+		Calendar: calprovider.Options{
+			FixtureDir: calendarFix,
+		},
 		Sources: []build.SourceArchive{
 			{Kind: source.KindOpenWhispr, Path: whispDB},
 			{Kind: source.KindGMeetGemini, Path: gmeetDB},
@@ -133,6 +138,9 @@ select count(*) from meetings where meeting_id like 'adhoc:%'
 	}
 	if _, err := build.Run(context.Background(), build.Options{
 		IndexDBPath: indexDB,
+		Calendar: calprovider.Options{
+			FixtureDir: calendarFix,
+		},
 		Sources: []build.SourceArchive{
 			{Kind: source.KindOpenWhispr, Path: whispDB},
 			{Kind: source.KindGMeetGemini, Path: gmeetDB},

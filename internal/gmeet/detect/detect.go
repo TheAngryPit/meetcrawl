@@ -6,7 +6,12 @@ import (
 	"strings"
 )
 
-var ptGeminiTitle = regexp.MustCompile(`(?i)^Reunião iniciada a \d{4}/\d{2}/\d{2} \d{2}:\d{2} \S+ [-–] Notas do Gemini$`)
+var (
+	ptGeminiTitleReunion  = regexp.MustCompile(`(?i)^Reunião iniciada a \d{4}/\d{2}/\d{2} \d{2}:\d{2} \S+ [-–] Notas do Gemini$`)
+	ptGeminiTitlePrefixed = regexp.MustCompile(`(?i)^.+ [-–] \d{4}/\d{2}/\d{2} \d{2}:\d{2} \S+ [-–] Notas do Gemini$`)
+	enGeminiTitlePrefixed = regexp.MustCompile(`(?i)^.+ [-–] \d{4}/\d{2}/\d{2} \d{2}:\d{2} \S+ [-–] Notes by Gemini$`)
+	enGeminiTitleSimple   = regexp.MustCompile(`(?i)^.+ [-–] Notes by Gemini$`)
+)
 
 // IsGeminiDocTitle reports whether a Drive file name matches Meet/Gemini notes doc titles.
 func IsGeminiDocTitle(title string) bool {
@@ -14,11 +19,16 @@ func IsGeminiDocTitle(title string) bool {
 	if title == "" {
 		return false
 	}
-	if ptGeminiTitle.MatchString(title) {
+	if ptGeminiTitleReunion.MatchString(title) {
 		return true
 	}
-	lower := strings.ToLower(title)
-	return strings.HasSuffix(lower, "notes by gemini")
+	if ptGeminiTitlePrefixed.MatchString(title) {
+		return true
+	}
+	if enGeminiTitlePrefixed.MatchString(title) {
+		return true
+	}
+	return enGeminiTitleSimple.MatchString(title)
 }
 
 // InFolderScope returns true when parentPath is under any configured root (ID or path segment).

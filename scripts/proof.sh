@@ -135,9 +135,42 @@ run_index_checks() {
   adhoc_count="$(sqlite3 "${INDEX_DB}" "select count(*) from meetings where meeting_id like 'adhoc:%';")"
   [[ "${adhoc_count}" == "1" ]] || fail "adhoc meetings=${adhoc_count} want 1"
 
-  local enriched_ical
+  local enriched_ical shared_meeting_id adhoc_mid whisp_on_shared gmeet_on_shared other_meeting_for_transcript
   enriched_ical="$(sqlite3 "${INDEX_DB}" "select ical_uid from meetings where ical_uid = 'cal-synthetic-001' limit 1;")"
   [[ "${enriched_ical}" == "cal-synthetic-001" ]] || fail "calendar enrichment missing ical_uid cal-synthetic-001"
+
+  shared_meeting_id="$(ICAL='cal-synthetic-001' START='2026-01-15T14:00:00Z' python3 <<'PY'
+import hashlib, os
+payload = f"{os.environ['ICAL']}|{os.environ['START']}"
+print(hashlib.sha256(payload.encode()).hexdigest())
+PY
+)"
+  whisp_on_shared="$(sqlite3 "${INDEX_DB}" "
+select count(*) from content_sources cs
+join meeting_contents c on cs.meeting_id = c.meeting_id and cs.content_hash = c.content_hash
+where cs.meeting_id = '${shared_meeting_id}' and cs.source = 'openwhispr'
+  and c.normalized_text like '%Synthetic standup transcript%'
+")"
+  gmeet_on_shared="$(sqlite3 "${INDEX_DB}" "
+select count(*) from content_sources cs
+join meeting_contents c on cs.meeting_id = c.meeting_id and cs.content_hash = c.content_hash
+where cs.meeting_id = '${shared_meeting_id}' and cs.source = 'gmeet-gemini'
+  and c.normalized_text like '%Synthetic standup transcript%'
+")"
+  [[ "${whisp_on_shared}" -ge 1 && "${gmeet_on_shared}" -ge 1 ]] || fail "shared meeting_id=${shared_meeting_id} missing openwhispr (${whisp_on_shared}) or gmeet-gemini (${gmeet_on_shared}) on deduped transcript"
+  other_meeting_for_transcript="$(sqlite3 "${INDEX_DB}" "
+select count(distinct cs.meeting_id) from content_sources cs
+join meeting_contents c on cs.meeting_id = c.meeting_id and cs.content_hash = c.content_hash
+where cs.source in ('openwhispr','gmeet-gemini')
+  and c.normalized_text like '%Synthetic standup transcript%'
+  and cs.meeting_id != '${shared_meeting_id}'
+")"
+  [[ "${other_meeting_for_transcript}" == "0" ]] || fail "gmeet/openwhispr transcript artifacts split across meeting_ids (extra=${other_meeting_for_transcript})"
+
+  adhoc_mid="$(sqlite3 "${INDEX_DB}" "select meeting_id from meetings where meeting_id like 'adhoc:%' limit 1;")"
+  [[ -n "${adhoc_mid}" && "${adhoc_mid}" == adhoc:* ]] || fail "adhoc meeting_id=${adhoc_mid} want adhoc: prefix"
+  log "shared meeting_id=${shared_meeting_id} (gmeet+openwhispr deduped)"
+  log "adhoc meeting_id=${adhoc_mid}"
   log "calendar enrichment linked synthetic event"
 
   local search_out
@@ -161,6 +194,9 @@ run_mcp_check() {
   export PROOF_MCP_CFG="${MEETCRAWL_CFG}"
   export PROOF_MCP_READS="${READS_DB}"
   export PROOF_MCP_BIN="${BINDIR}/meetcrawl"
+  export PROOF_MCP_SHAREABLE_MEETING_ID
+  PROOF_MCP_SHAREABLE_MEETING_ID="$(sqlite3 "${INDEX_DB}" "select meeting_id from meetings where meeting_id like 'adhoc:%' limit 1;")"
+  [[ -n "${PROOF_MCP_SHAREABLE_MEETING_ID}" ]] || fail "MCP proof missing shareable adhoc meeting_id"
   (
     cd "${REPO_ROOT}"
     HOME="${BUILD_HOME}" GOWORK=off go run ./scripts/proof_mcp.go

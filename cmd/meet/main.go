@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TheAngryPit/meetcrawl/internal/whisp/cli"
+	"github.com/TheAngryPit/meetcrawl/internal/meet/cli"
 )
 
 func main() {

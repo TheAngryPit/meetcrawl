@@ -1,10 +1,10 @@
 {
   "schema_version": "crawlkit.control.v1",
-  "id": "meetcrawl",
+  "id": "meet",
   "display_name": "Meetings Index",
-  "description": "Local-first meetings index joining whispcrawl, gmeetcrawl, and exportcrawl archives.",
+  "description": "Local-first meetings index with pluggable source adapters (OpenWhispr, Google Meet/Gemini, export-file).",
   "binary": {
-    "name": "meetcrawl"
+    "name": "meet"
   },
   "branding": {},
   "paths": {
@@ -16,7 +16,7 @@
     "doctor": {
       "title": "Doctor",
       "argv": [
-        "meetcrawl",
+        "meet",
         "doctor",
         "--json"
       ],
@@ -25,7 +25,7 @@
     "index": {
       "title": "Index",
       "argv": [
-        "meetcrawl",
+        "meet",
         "index",
         "--json"
       ],
@@ -35,7 +35,7 @@
     "metadata": {
       "title": "Metadata",
       "argv": [
-        "meetcrawl",
+        "meet",
         "metadata",
         "--json"
       ],
@@ -44,7 +44,7 @@
     "search": {
       "title": "Search",
       "argv": [
-        "meetcrawl",
+        "meet",
         "search",
         "--json"
       ],
@@ -53,17 +53,30 @@
     "status": {
       "title": "Status",
       "argv": [
-        "meetcrawl",
+        "meet",
         "status",
         "--json"
       ],
       "json": true
+    },
+    "sync": {
+      "title": "Sync source",
+      "argv": [
+        "meet",
+        "sync",
+        "--json",
+        "--source",
+        "openwhispr"
+      ],
+      "json": true,
+      "mutates": true
     }
   },
   "capabilities": [
     "metadata",
     "status",
     "doctor",
+    "sync",
     "index",
     "search"
   ],
@@ -71,10 +84,10 @@
     "contains_private_messages": true,
     "exports_secrets": false,
     "local_only_scopes": [
-      "whispcrawl SQLite archive",
-      "gmeetcrawl SQLite archive",
-      "exportcrawl SQLite archive",
-      "meetcrawl index SQLite archive"
+      "openwhispr SQLite archive",
+      "gmeet-gemini SQLite archive",
+      "export-file SQLite archive",
+      "meet index SQLite archive"
     ]
   }
 }

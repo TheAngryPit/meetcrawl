@@ -5,12 +5,12 @@ When Phase 1 code lands, product done means `make check && scripts/proof.sh` on 
 ## Sub-features
 
 - `proof-not-runnable` — Doctor reports not runnable when `go.mod` or `scripts/proof.sh` is missing.
-- `proof-sync-ingest` — whispcrawl and gmeetcrawl fixture sync counts (via `scripts/proof.sh`).
+- `proof-sync-ingest` — `meet sync` fixture ingest counts for openwhispr, gmeet, and export-file (via `scripts/proof.sh`).
 - `proof-index-dedup` — index meetings, dedup, adhoc, pt-PT FTS (via `scripts/proof.sh`).
 - `proof-mcp-readlog` — MCP stdio, untrusted prefix, restricted hidden, read_log (via `scripts/proof.sh`).
 - `proof-readonly-rebuild` — source sha256 stable, rebuildable index hash (via `scripts/proof.sh`).
-- `proof-metadata-deps` — meetcrawl `metadata --json` / crawlbar manifest (not in proof script until implemented).
-- `proof-unsupported-schema` — whispcrawl and gmeetcrawl unknown schema fail closed (via `scripts/proof.sh`).
+- `proof-metadata-deps` — `meet metadata --json` / crawlbar manifest (via `scripts/proof.sh`).
+- `proof-unsupported-schema` — openwhispr, gmeet, and export-file unknown schema fail closed (via `scripts/proof.sh`).
 
 ## How to get to it (user POV)
 

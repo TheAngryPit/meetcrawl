@@ -29,16 +29,43 @@ type CalendarConfig struct {
 	TokenPath       string `toml:"token_path,omitempty" json:"token_path,omitempty"`
 }
 
+// OpenWhisprSection holds OpenWhispr-specific settings; archive path stays whispcrawl_db.
+type OpenWhisprSection struct {
+	SourceDB string `toml:"source_db,omitempty" json:"source_db,omitempty"`
+	CacheDir string `toml:"cache_dir,omitempty" json:"cache_dir,omitempty"`
+	LogDir   string `toml:"log_dir,omitempty" json:"log_dir,omitempty"`
+}
+
+// GMeetSection holds Google Meet / Gemini ingest settings; archive path stays gmeetcrawl_db.
+type GMeetSection struct {
+	CacheDir        string   `toml:"cache_dir,omitempty" json:"cache_dir,omitempty"`
+	LogDir          string   `toml:"log_dir,omitempty" json:"log_dir,omitempty"`
+	MeetFolderRoots []string `toml:"meet_folder_roots,omitempty" json:"meet_folder_roots,omitempty"`
+	OAuthClientPath string   `toml:"oauth_client_path,omitempty" json:"oauth_client_path,omitempty"`
+	TokenPath       string   `toml:"token_path,omitempty" json:"token_path,omitempty"`
+}
+
+// ExportFileSection holds export-file ingest settings; archive path stays exportcrawl_db.
+type ExportFileSection struct {
+	SourceDir    string `toml:"source_dir,omitempty" json:"source_dir,omitempty"`
+	CacheDir     string `toml:"cache_dir,omitempty" json:"cache_dir,omitempty"`
+	LogDir       string `toml:"log_dir,omitempty" json:"log_dir,omitempty"`
+	PrivacyClass string `toml:"privacy_class,omitempty" json:"privacy_class,omitempty"`
+}
+
 type Config struct {
-	Version       int            `toml:"version" json:"version"`
-	DBPath        string         `toml:"db_path" json:"db_path"`
-	ReadsDBPath   string         `toml:"reads_db_path" json:"reads_db_path"`
-	WhispcrawlDB  string         `toml:"whispcrawl_db" json:"whispcrawl_db"`
-	GmeetcrawlDB  string         `toml:"gmeetcrawl_db" json:"gmeetcrawl_db"`
-	ExportcrawlDB string         `toml:"exportcrawl_db" json:"exportcrawl_db"`
-	Privacy       privacy.Config `toml:"privacy" json:"privacy"`
-	Calendar      CalendarConfig `toml:"calendar" json:"calendar"`
-	MCP           MCPConfig      `toml:"mcp" json:"mcp"`
+	Version       int               `toml:"version" json:"version"`
+	DBPath        string            `toml:"db_path" json:"db_path"`
+	ReadsDBPath   string            `toml:"reads_db_path" json:"reads_db_path"`
+	WhispcrawlDB  string            `toml:"whispcrawl_db" json:"whispcrawl_db"`
+	GmeetcrawlDB  string            `toml:"gmeetcrawl_db" json:"gmeetcrawl_db"`
+	ExportcrawlDB string            `toml:"exportcrawl_db" json:"exportcrawl_db"`
+	OpenWhispr    OpenWhisprSection `toml:"openwhispr" json:"openwhispr"`
+	GMeet         GMeetSection      `toml:"gmeet" json:"gmeet"`
+	ExportFile    ExportFileSection `toml:"export_file" json:"export_file"`
+	Privacy       privacy.Config    `toml:"privacy" json:"privacy"`
+	Calendar      CalendarConfig    `toml:"calendar" json:"calendar"`
+	MCP           MCPConfig         `toml:"mcp" json:"mcp"`
 }
 
 func App() ckconfig.App {
@@ -73,6 +100,23 @@ func Defaults() (Config, string, error) {
 		WhispcrawlDB:  whispDefaults.DBPath,
 		GmeetcrawlDB:  gmeetDefaults.DBPath,
 		ExportcrawlDB: exportDefaults.DBPath,
+		OpenWhispr: OpenWhisprSection{
+			SourceDB: whispDefaults.SourceDB,
+			CacheDir: whispDefaults.CacheDir,
+			LogDir:   whispDefaults.LogDir,
+		},
+		GMeet: GMeetSection{
+			CacheDir:        gmeetDefaults.CacheDir,
+			LogDir:          gmeetDefaults.LogDir,
+			MeetFolderRoots: append([]string(nil), gmeetDefaults.MeetFolderRoots...),
+			OAuthClientPath: gmeetDefaults.OAuthClientPath,
+			TokenPath:       gmeetDefaults.TokenPath,
+		},
+		ExportFile: ExportFileSection{
+			CacheDir:     exportDefaults.CacheDir,
+			LogDir:       exportDefaults.LogDir,
+			PrivacyClass: exportDefaults.PrivacyClass,
+		},
 		Calendar: CalendarConfig{
 			OAuthClientPath: gmeetDefaults.OAuthClientPath,
 			TokenPath:       gmeetDefaults.TokenPath,
@@ -105,6 +149,16 @@ func Load(configPath string) (Config, string, error) {
 	cfg.WhispcrawlDB = ckconfig.ExpandHome(cfg.WhispcrawlDB)
 	cfg.GmeetcrawlDB = ckconfig.ExpandHome(cfg.GmeetcrawlDB)
 	cfg.ExportcrawlDB = ckconfig.ExpandHome(cfg.ExportcrawlDB)
+	cfg.OpenWhispr.SourceDB = ckconfig.ExpandHome(cfg.OpenWhispr.SourceDB)
+	cfg.OpenWhispr.CacheDir = ckconfig.ExpandHome(cfg.OpenWhispr.CacheDir)
+	cfg.OpenWhispr.LogDir = ckconfig.ExpandHome(cfg.OpenWhispr.LogDir)
+	cfg.GMeet.CacheDir = ckconfig.ExpandHome(cfg.GMeet.CacheDir)
+	cfg.GMeet.LogDir = ckconfig.ExpandHome(cfg.GMeet.LogDir)
+	cfg.GMeet.OAuthClientPath = ckconfig.ExpandHome(cfg.GMeet.OAuthClientPath)
+	cfg.GMeet.TokenPath = ckconfig.ExpandHome(cfg.GMeet.TokenPath)
+	cfg.ExportFile.SourceDir = ckconfig.ExpandHome(cfg.ExportFile.SourceDir)
+	cfg.ExportFile.CacheDir = ckconfig.ExpandHome(cfg.ExportFile.CacheDir)
+	cfg.ExportFile.LogDir = ckconfig.ExpandHome(cfg.ExportFile.LogDir)
 	cfg.Calendar.FixtureDir = ckconfig.ExpandHome(cfg.Calendar.FixtureDir)
 	cfg.Calendar.OAuthClientPath = ckconfig.ExpandHome(cfg.Calendar.OAuthClientPath)
 	cfg.Calendar.TokenPath = ckconfig.ExpandHome(cfg.Calendar.TokenPath)
@@ -153,7 +207,84 @@ func Load(configPath string) (Config, string, error) {
 		}
 		cfg.Calendar.TokenPath = gmeetDefaults.TokenPath
 	}
+	cfg = fillSourceSections(cfg)
 	return cfg, resolved, nil
+}
+
+func fillSourceSections(cfg Config) Config {
+	whispDefaults, _, _ := wconfig.Defaults()
+	gmeetDefaults, _, _ := gconfig.Defaults()
+	exportDefaults, _, _ := econfig.Defaults()
+	if cfg.OpenWhispr.SourceDB == "" {
+		cfg.OpenWhispr.SourceDB = whispDefaults.SourceDB
+	}
+	if cfg.OpenWhispr.CacheDir == "" {
+		cfg.OpenWhispr.CacheDir = whispDefaults.CacheDir
+	}
+	if cfg.OpenWhispr.LogDir == "" {
+		cfg.OpenWhispr.LogDir = whispDefaults.LogDir
+	}
+	if cfg.GMeet.CacheDir == "" {
+		cfg.GMeet.CacheDir = gmeetDefaults.CacheDir
+	}
+	if cfg.GMeet.LogDir == "" {
+		cfg.GMeet.LogDir = gmeetDefaults.LogDir
+	}
+	if len(cfg.GMeet.MeetFolderRoots) == 0 {
+		cfg.GMeet.MeetFolderRoots = append([]string(nil), gmeetDefaults.MeetFolderRoots...)
+	}
+	if cfg.GMeet.OAuthClientPath == "" {
+		cfg.GMeet.OAuthClientPath = gmeetDefaults.OAuthClientPath
+	}
+	if cfg.GMeet.TokenPath == "" {
+		cfg.GMeet.TokenPath = gmeetDefaults.TokenPath
+	}
+	if cfg.ExportFile.CacheDir == "" {
+		cfg.ExportFile.CacheDir = exportDefaults.CacheDir
+	}
+	if cfg.ExportFile.LogDir == "" {
+		cfg.ExportFile.LogDir = exportDefaults.LogDir
+	}
+	if cfg.ExportFile.PrivacyClass == "" {
+		cfg.ExportFile.PrivacyClass = exportDefaults.PrivacyClass
+	}
+	return cfg
+}
+
+// WhispConfig projects the unified config into whispcrawl archive settings.
+func (c Config) WhispConfig() wconfig.Config {
+	return wconfig.Config{
+		Version:  c.Version,
+		DBPath:   c.WhispcrawlDB,
+		CacheDir: c.OpenWhispr.CacheDir,
+		LogDir:   c.OpenWhispr.LogDir,
+		SourceDB: c.OpenWhispr.SourceDB,
+	}
+}
+
+// GMeetConfig projects the unified config into gmeetcrawl archive settings.
+func (c Config) GMeetConfig() gconfig.Config {
+	return gconfig.Config{
+		Version:         c.Version,
+		DBPath:          c.GmeetcrawlDB,
+		CacheDir:        c.GMeet.CacheDir,
+		LogDir:          c.GMeet.LogDir,
+		MeetFolderRoots: append([]string(nil), c.GMeet.MeetFolderRoots...),
+		OAuthClientPath: c.GMeet.OAuthClientPath,
+		TokenPath:       c.GMeet.TokenPath,
+	}
+}
+
+// ExportFileConfig projects the unified config into exportcrawl archive settings.
+func (c Config) ExportFileConfig() econfig.Config {
+	return econfig.Config{
+		Version:      c.Version,
+		DBPath:       c.ExportcrawlDB,
+		CacheDir:     c.ExportFile.CacheDir,
+		LogDir:       c.ExportFile.LogDir,
+		SourceDir:    c.ExportFile.SourceDir,
+		PrivacyClass: c.ExportFile.PrivacyClass,
+	}
 }
 
 func Save(path string, cfg Config) error {
@@ -169,7 +300,18 @@ func EnsureDirs(cfg Config) error {
 			return fmt.Errorf("create dir %s: %w", dir, err)
 		}
 	}
-	return nil
+	return EnsureSourceDirs(cfg)
+}
+
+// EnsureSourceDirs creates cache/log dirs for each source archive.
+func EnsureSourceDirs(cfg Config) error {
+	if err := wconfig.EnsureDirs(cfg.WhispConfig()); err != nil {
+		return err
+	}
+	if err := gconfig.EnsureDirs(cfg.GMeetConfig()); err != nil {
+		return err
+	}
+	return econfig.EnsureDirs(cfg.ExportFileConfig())
 }
 
 func MarshalPreview(cfg Config) ([]byte, error) {

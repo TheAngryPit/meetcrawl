@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/TheAngryPit/meetcrawl/internal/meetcrawl/cli"
+	"github.com/TheAngryPit/meetcrawl/internal/meet/cli"
 	mconfig "github.com/TheAngryPit/meetcrawl/internal/meetcrawl/config"
 	"github.com/openclaw/crawlkit/control"
 )
@@ -67,7 +67,7 @@ func TestShippedCrawlbarManifestMatchesCommand(t *testing.T) {
 	}
 	out := runMetadataApp(t)
 	if !jsonEqual(shipped, out) {
-		t.Fatalf("shipped manifest differs from meetcrawl metadata --json\nshipped:\n%s\ncommand:\n%s", shipped, out)
+		t.Fatalf("shipped manifest differs from meet metadata --json\nshipped:\n%s\ncommand:\n%s", shipped, out)
 	}
 	var manifest control.Manifest
 	if err := json.Unmarshal(shipped, &manifest); err != nil {
@@ -92,7 +92,7 @@ func runMetadataApp(t *testing.T) []byte {
 	var stdout bytes.Buffer
 	app := cli.App{Stdout: &stdout}
 	if err := app.Run(context.Background(), []string{"--json", "metadata"}); err != nil {
-		t.Fatalf("meetcrawl metadata --json: %v", err)
+		t.Fatalf("meet metadata --json: %v", err)
 	}
 	return bytes.TrimSpace(stdout.Bytes())
 }
@@ -145,5 +145,8 @@ func TestMetadataAppRun(t *testing.T) {
 	}
 	if manifest.SchemaVersion != control.SchemaVersion {
 		t.Fatalf("schema = %q", manifest.SchemaVersion)
+	}
+	if manifest.Binary.Name != "meet" {
+		t.Fatalf("binary.name = %q, want meet", manifest.Binary.Name)
 	}
 }

@@ -12,25 +12,26 @@ import (
 func ControlManifest(configPath string, cfg mconfig.Config) control.Manifest {
 	_ = configPath
 	_ = cfg
-	manifest := control.NewManifest("meetcrawl", "Meetings Index", "meetcrawl")
-	manifest.Description = "Local-first meetings index joining whispcrawl, gmeetcrawl, and exportcrawl archives."
+	manifest := control.NewManifest("meet", "Meetings Index", "meet")
+	manifest.Description = "Local-first meetings index with pluggable source adapters (OpenWhispr, Google Meet/Gemini, export-file)."
 	manifest.Paths = portableManifestPaths()
-	manifest.Capabilities = []string{"metadata", "status", "doctor", "index", "search"}
+	manifest.Capabilities = []string{"metadata", "status", "doctor", "sync", "index", "search"}
 	manifest.Commands = map[string]control.Command{
-		"metadata": {Title: "Metadata", Argv: []string{"meetcrawl", "metadata", "--json"}, JSON: true},
-		"status":   {Title: "Status", Argv: []string{"meetcrawl", "status", "--json"}, JSON: true},
-		"doctor":   {Title: "Doctor", Argv: []string{"meetcrawl", "doctor", "--json"}, JSON: true},
-		"index":    {Title: "Index", Argv: []string{"meetcrawl", "index", "--json"}, JSON: true, Mutates: true},
-		"search":   {Title: "Search", Argv: []string{"meetcrawl", "search", "--json"}, JSON: true},
+		"metadata": {Title: "Metadata", Argv: []string{"meet", "metadata", "--json"}, JSON: true},
+		"status":   {Title: "Status", Argv: []string{"meet", "status", "--json"}, JSON: true},
+		"doctor":   {Title: "Doctor", Argv: []string{"meet", "doctor", "--json"}, JSON: true},
+		"sync":     {Title: "Sync source", Argv: []string{"meet", "sync", "--json", "--source", "openwhispr"}, JSON: true, Mutates: true},
+		"index":    {Title: "Index", Argv: []string{"meet", "index", "--json"}, JSON: true, Mutates: true},
+		"search":   {Title: "Search", Argv: []string{"meet", "search", "--json"}, JSON: true},
 	}
 	manifest.Privacy = control.Privacy{
 		ContainsPrivateMessages: true,
 		ExportsSecrets:          false,
 		LocalOnlyScopes: []string{
-			"whispcrawl SQLite archive",
-			"gmeetcrawl SQLite archive",
-			"exportcrawl SQLite archive",
-			"meetcrawl index SQLite archive",
+			"openwhispr SQLite archive",
+			"gmeet-gemini SQLite archive",
+			"export-file SQLite archive",
+			"meet index SQLite archive",
 		},
 	}
 	return manifest
@@ -69,9 +70,6 @@ func ValidateManifest(m control.Manifest) error {
 	return nil
 }
 
-// portableManifestPaths returns crawlkit default locations as ~/… strings (see
-// crawlkit config.platformPaths fallbacks). Manifest paths ignore XDG_* overrides
-// so shipped crawlbar JSON stays copy-safe; MEETCRAWL_CONFIG still wins at runtime.
 func portableManifestPaths() control.Paths {
 	out := control.Paths{ConfigEnv: mconfig.ConfigEnv}
 	switch runtime.GOOS {

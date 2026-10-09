@@ -63,41 +63,36 @@ assert_fixture_hashes_unchanged() {
 }
 
 build_binaries() {
-  log "building binaries"
+  log "building meet binary"
   (
     cd "${REPO_ROOT}"
-    HOME="${BUILD_HOME}" GOWORK=off go build -o "${BINDIR}/whispcrawl" ./cmd/whispcrawl
-    HOME="${BUILD_HOME}" GOWORK=off go build -o "${BINDIR}/gmeetcrawl" ./cmd/gmeetcrawl
-    HOME="${BUILD_HOME}" GOWORK=off go build -o "${BINDIR}/exportcrawl" ./cmd/exportcrawl
-    HOME="${BUILD_HOME}" GOWORK=off go build -o "${BINDIR}/meetcrawl" ./cmd/meetcrawl
+    HOME="${BUILD_HOME}" GOWORK=off go build -o "${BINDIR}/meet" ./cmd/meet
   ) >>"${PROOF_DIR}/build.log" 2>&1
 }
 
 run_sync_ingest() {
-  log "check 1: crawler sync ingest counts"
-  "${BINDIR}/whispcrawl" init >>"${PROOF_DIR}/whisp-init.log" 2>&1
+  log "check 1: meet sync ingest counts"
+  "${BINDIR}/meet" init >>"${PROOF_DIR}/meet-init.log" 2>&1
   local whisp_out
-  whisp_out="$("${BINDIR}/whispcrawl" --json sync --source-db "${WHISP_SUPPORTED_DB}" 2>>"${PROOF_DIR}/whisp-sync.log")"
+  whisp_out="$("${BINDIR}/meet" --json sync --source openwhispr --source-db "${WHISP_SUPPORTED_DB}" 2>>"${PROOF_DIR}/whisp-sync.log")"
   echo "${whisp_out}" >>"${PROOF_DIR}/whisp-sync.log"
   local whisp_artifacts
   whisp_artifacts="$(json_get result.artifacts "${whisp_out}")"
-  [[ "${whisp_artifacts}" == "3" ]] || fail "whispcrawl artifacts=${whisp_artifacts} want 3"
+  [[ "${whisp_artifacts}" == "3" ]] || fail "openwhispr artifacts=${whisp_artifacts} want 3"
 
-  "${BINDIR}/gmeetcrawl" init >>"${PROOF_DIR}/gmeet-init.log" 2>&1
   local gmeet_out
-  gmeet_out="$("${BINDIR}/gmeetcrawl" --json sync --fixture "${GMEET_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/gmeet-sync.log")"
+  gmeet_out="$("${BINDIR}/meet" --json sync --source gmeet --fixture "${GMEET_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/gmeet-sync.log")"
   echo "${gmeet_out}" >>"${PROOF_DIR}/gmeet-sync.log"
   local gmeet_artifacts
   gmeet_artifacts="$(json_get result.artifacts "${gmeet_out}")"
-  [[ "${gmeet_artifacts}" == "3" ]] || fail "gmeetcrawl artifacts=${gmeet_artifacts} want 3"
+  [[ "${gmeet_artifacts}" == "3" ]] || fail "gmeet artifacts=${gmeet_artifacts} want 3"
 
-  "${BINDIR}/exportcrawl" init >>"${PROOF_DIR}/export-init.log" 2>&1
   local export_out
-  export_out="$("${BINDIR}/exportcrawl" --json sync --fixture "${EXPORT_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/export-sync.log")"
+  export_out="$("${BINDIR}/meet" --json sync --source export-file --fixture "${EXPORT_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/export-sync.log")"
   echo "${export_out}" >>"${PROOF_DIR}/export-sync.log"
   local export_artifacts
   export_artifacts="$(json_get result.artifacts "${export_out}")"
-  [[ "${export_artifacts}" == "4" ]] || fail "exportcrawl artifacts=${export_artifacts} want 4"
+  [[ "${export_artifacts}" == "4" ]] || fail "export-file artifacts=${export_artifacts} want 4"
   log "sync ingest ok (3 + 3 + 4 artifacts)"
 }
 
@@ -119,10 +114,9 @@ PY
 
 run_index_checks() {
   log "check 2-3: index dedup, adhoc, pt-PT search"
-  "${BINDIR}/meetcrawl" init >>"${PROOF_DIR}/meetcrawl-init.log" 2>&1
   patch_meetcrawl_privacy
   local idx_out
-  idx_out="$("${BINDIR}/meetcrawl" --json index --calendar-fixture "${CALENDAR_FIX}" 2>>"${PROOF_DIR}/index.log")"
+  idx_out="$("${BINDIR}/meet" --json index --calendar-fixture "${CALENDAR_FIX}" 2>>"${PROOF_DIR}/index.log")"
   echo "${idx_out}" >>"${PROOF_DIR}/index.log"
   local meetings
   meetings="$(json_get result.meetings "${idx_out}")"
@@ -174,7 +168,7 @@ where cs.source in ('openwhispr','gmeet-gemini')
   log "calendar enrichment linked synthetic event"
 
   local search_out
-  search_out="$("${BINDIR}/meetcrawl" --json search reuniao 2>>"${PROOF_DIR}/search.log")"
+  search_out="$("${BINDIR}/meet" --json search reuniao 2>>"${PROOF_DIR}/search.log")"
   echo "${search_out}" >>"${PROOF_DIR}/search.log"
   SEARCH_JSON="${search_out}" python3 <<'PY' || fail "pt-PT search missed accented fixture text"
 import json, os
@@ -193,7 +187,7 @@ run_mcp_check() {
   log "check 4: MCP stdio session"
   export PROOF_MCP_CFG="${MEETCRAWL_CFG}"
   export PROOF_MCP_READS="${READS_DB}"
-  export PROOF_MCP_BIN="${BINDIR}/meetcrawl"
+  export PROOF_MCP_BIN="${BINDIR}/meet"
   export PROOF_MCP_SHAREABLE_MEETING_ID
   PROOF_MCP_SHAREABLE_MEETING_ID="$(sqlite3 "${INDEX_DB}" "select meeting_id from meetings where meeting_id like 'adhoc:%' limit 1;")"
   [[ -n "${PROOF_MCP_SHAREABLE_MEETING_ID}" ]] || fail "MCP proof missing shareable adhoc meeting_id"
@@ -212,7 +206,7 @@ run_rebuild_hash() {
     HOME="${BUILD_HOME}" GOWORK=off go run ./scripts/proof_index_hash.go "${INDEX_DB}"
   )"
   rm -f "${INDEX_DB}"
-  "${BINDIR}/meetcrawl" --json index --calendar-fixture "${CALENDAR_FIX}" >>"${PROOF_DIR}/reindex.log" 2>&1
+  "${BINDIR}/meet" --json index --calendar-fixture "${CALENDAR_FIX}" >>"${PROOF_DIR}/reindex.log" 2>&1
   hash2="$(
     cd "${REPO_ROOT}"
     HOME="${BUILD_HOME}" GOWORK=off go run ./scripts/proof_index_hash.go "${INDEX_DB}"
@@ -225,7 +219,7 @@ run_rebuild_hash() {
 run_metadata_deps_check() {
   log "check 6: metadata control.v1 and no crawlkit/remote deps"
   local meta_out schema
-  meta_out="$("${BINDIR}/meetcrawl" --json metadata 2>>"${PROOF_DIR}/metadata.log")"
+  meta_out="$("${BINDIR}/meet" --json metadata 2>>"${PROOF_DIR}/metadata.log")"
   echo "${meta_out}" >>"${PROOF_DIR}/metadata.log"
   schema="$(json_get schema_version "${meta_out}")"
   [[ "${schema}" == "crawlkit.control.v1" ]] || fail "metadata schema_version=${schema} want crawlkit.control.v1"
@@ -240,46 +234,46 @@ run_metadata_deps_check() {
 
 run_unsupported_schema() {
   log "check 7: unsupported_schema fail-closed"
-  local iso_home whisp_db gmeet_db
+  local iso_home whisp_db gmeet_db export_db
 
   iso_home="$(mktemp -d)"
-  HOME="${iso_home}" "${BINDIR}/whispcrawl" init >>"${PROOF_DIR}/whisp-unsupported-init.log" 2>&1
+  HOME="${iso_home}" "${BINDIR}/meet" init >>"${PROOF_DIR}/whisp-unsupported-init.log" 2>&1
   whisp_db="${iso_home}/.local/share/whispcrawl/whispcrawl.db"
   local whisp_code=0 whisp_out
   set +e
-  whisp_out="$(HOME="${iso_home}" "${BINDIR}/whispcrawl" --json sync --source-db "${WHISP_UNSUPPORTED_DB}" 2>&1)"
+  whisp_out="$(HOME="${iso_home}" "${BINDIR}/meet" --json sync --source openwhispr --source-db "${WHISP_UNSUPPORTED_DB}" 2>&1)"
   whisp_code=$?
   set -e
   echo "${whisp_out}" >>"${PROOF_DIR}/whisp-unsupported.log"
-  [[ "${whisp_code}" -ne 0 ]] || fail "whispcrawl unsupported fixture exited 0"
-  printf '%s' "${whisp_out}" | grep -q unsupported_schema || fail "whispcrawl missing unsupported_schema"
-  [[ ! -f "${whisp_db}" ]] || fail "whispcrawl wrote archive on unsupported schema"
+  [[ "${whisp_code}" -ne 0 ]] || fail "openwhispr unsupported fixture exited 0"
+  printf '%s' "${whisp_out}" | grep -q unsupported_schema || fail "openwhispr missing unsupported_schema"
+  [[ ! -f "${whisp_db}" ]] || fail "openwhispr wrote archive on unsupported schema"
 
   iso_home="$(mktemp -d)"
-  HOME="${iso_home}" "${BINDIR}/gmeetcrawl" init >>"${PROOF_DIR}/gmeet-unsupported-init.log" 2>&1
+  HOME="${iso_home}" "${BINDIR}/meet" init >>"${PROOF_DIR}/gmeet-unsupported-init.log" 2>&1
   gmeet_db="${iso_home}/.local/share/gmeetcrawl/gmeetcrawl.db"
   local gmeet_code=0 gmeet_out
   set +e
-  gmeet_out="$(HOME="${iso_home}" "${BINDIR}/gmeetcrawl" --json sync --fixture "${GMEET_UNSUPPORTED_FIX}" 2>&1)"
+  gmeet_out="$(HOME="${iso_home}" "${BINDIR}/meet" --json sync --source gmeet --fixture "${GMEET_UNSUPPORTED_FIX}" 2>&1)"
   gmeet_code=$?
   set -e
   echo "${gmeet_out}" >>"${PROOF_DIR}/gmeet-unsupported.log"
-  [[ "${gmeet_code}" -ne 0 ]] || fail "gmeetcrawl unsupported fixture exited 0"
-  printf '%s' "${gmeet_out}" | grep -q unsupported_schema || fail "gmeetcrawl missing unsupported_schema"
-  [[ ! -f "${gmeet_db}" ]] || fail "gmeetcrawl wrote archive on unsupported schema"
+  [[ "${gmeet_code}" -ne 0 ]] || fail "gmeet unsupported fixture exited 0"
+  printf '%s' "${gmeet_out}" | grep -q unsupported_schema || fail "gmeet missing unsupported_schema"
+  [[ ! -f "${gmeet_db}" ]] || fail "gmeet wrote archive on unsupported schema"
 
   iso_home="$(mktemp -d)"
-  HOME="${iso_home}" "${BINDIR}/exportcrawl" init >>"${PROOF_DIR}/export-unsupported-init.log" 2>&1
+  HOME="${iso_home}" "${BINDIR}/meet" init >>"${PROOF_DIR}/export-unsupported-init.log" 2>&1
   export_db="${iso_home}/.local/share/exportcrawl/exportcrawl.db"
   local export_code=0 export_out
   set +e
-  export_out="$(HOME="${iso_home}" "${BINDIR}/exportcrawl" --json sync --fixture "${EXPORT_UNSUPPORTED_FIX}" 2>&1)"
+  export_out="$(HOME="${iso_home}" "${BINDIR}/meet" --json sync --source export-file --fixture "${EXPORT_UNSUPPORTED_FIX}" 2>&1)"
   export_code=$?
   set -e
   echo "${export_out}" >>"${PROOF_DIR}/export-unsupported.log"
-  [[ "${export_code}" -ne 0 ]] || fail "exportcrawl unsupported fixture exited 0"
-  printf '%s' "${export_out}" | grep -q unsupported_schema || fail "exportcrawl missing unsupported_schema"
-  [[ ! -f "${export_db}" ]] || fail "exportcrawl wrote archive on unsupported schema"
+  [[ "${export_code}" -ne 0 ]] || fail "export-file unsupported fixture exited 0"
+  printf '%s' "${export_out}" | grep -q unsupported_schema || fail "export-file missing unsupported_schema"
+  [[ ! -f "${export_db}" ]] || fail "export-file wrote archive on unsupported schema"
   log "unsupported_schema fail-closed ok"
 }
 
@@ -290,6 +284,7 @@ root = pathlib.Path("${PROOF_DIR}")
 summary = {
     "ok": True,
     "home": "${PROOF_HOME}",
+    "binary": "meet",
     "checks": [
         "sync_ingest",
         "index_dedup_adhoc",

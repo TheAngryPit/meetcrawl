@@ -21,12 +21,14 @@ func main() {
 	cfg := os.Getenv("PROOF_MCP_CFG")
 	readsPath := os.Getenv("PROOF_MCP_READS")
 	bin := os.Getenv("PROOF_MCP_BIN")
-	if cfg == "" || readsPath == "" || bin == "" {
-		fmt.Fprintln(os.Stderr, "missing PROOF_MCP_CFG, PROOF_MCP_READS, or PROOF_MCP_BIN")
+	shareableID := os.Getenv("PROOF_MCP_SHAREABLE_MEETING_ID")
+	if cfg == "" || readsPath == "" || bin == "" || shareableID == "" {
+		fmt.Fprintln(os.Stderr, "missing PROOF_MCP_CFG, PROOF_MCP_READS, PROOF_MCP_BIN, or PROOF_MCP_SHAREABLE_MEETING_ID")
 		os.Exit(2)
 	}
 
 	restrictedID := calendarMeetingID("cal-synthetic-001", "2026-01-15T14:00:00Z")
+	const wantReadLogDelta = 4
 
 	ctx := context.Background()
 	before, err := reads.CountRows(ctx, readsPath)
@@ -60,41 +62,39 @@ func main() {
 		}
 	}
 
-	res, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
-		Name:      "search_meetings",
-		Arguments: map[string]any{"query": "reuniao", "limit": 10},
-	})
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "search_meetings:", err)
-		os.Exit(1)
-	}
-	text := textFromResult(res)
-	if !strings.HasPrefix(text, mcpserver.UntrustedPrefix) {
-		fmt.Fprintf(os.Stderr, "missing untrusted prefix:\n%s\n", text)
-		os.Exit(1)
+	call := func(tool string, args map[string]any, hideRestricted bool) {
+		res, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: tool, Arguments: args})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %v\n", tool, err)
+			os.Exit(1)
+		}
+		if res.IsError {
+			fmt.Fprintf(os.Stderr, "%s returned error: %s\n", tool, textFromResult(res))
+			os.Exit(1)
+		}
+		text := textFromResult(res)
+		if !strings.HasPrefix(text, mcpserver.UntrustedPrefix) {
+			fmt.Fprintf(os.Stderr, "%s missing untrusted prefix:\n%s\n", tool, text)
+			os.Exit(1)
+		}
+		if hideRestricted && strings.Contains(text, restrictedID) {
+			fmt.Fprintf(os.Stderr, "%s restricted meeting leaked:\n%s\n", tool, text)
+			os.Exit(1)
+		}
 	}
 
-	hidden, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
-		Name:      "search_meetings",
-		Arguments: map[string]any{"query": "Synthetic standup transcript", "limit": 10},
-	})
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "search restricted:", err)
-		os.Exit(1)
-	}
-	hiddenText := textFromResult(hidden)
-	if strings.Contains(hiddenText, restrictedID) {
-		fmt.Fprintf(os.Stderr, "restricted meeting leaked:\n%s\n", hiddenText)
-		os.Exit(1)
-	}
+	call("search_meetings", map[string]any{"query": "reuniao", "limit": 10}, false)
+	call("search_meetings", map[string]any{"query": "Synthetic standup transcript", "limit": 10}, true)
+	call("get_meeting", map[string]any{"meeting_id": shareableID}, false)
+	call("list_meetings", map[string]any{"limit": 50}, true)
 
 	after, err := reads.CountRows(ctx, readsPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if after-before != 2 {
-		fmt.Fprintf(os.Stderr, "read_log delta = %d, want 2\n", after-before)
+	if after-before != wantReadLogDelta {
+		fmt.Fprintf(os.Stderr, "read_log delta = %d, want %d (one row per tool call)\n", after-before, wantReadLogDelta)
 		os.Exit(1)
 	}
 }

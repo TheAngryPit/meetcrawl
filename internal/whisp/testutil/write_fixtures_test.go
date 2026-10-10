@@ -22,4 +22,7 @@ func TestWriteRepoFixtures(t *testing.T) {
 	if err := WriteUnsupportedDB(filepath.Join(root, "unsupported", "transcriptions.db")); err != nil {
 		t.Fatalf("WriteUnsupportedDB() = %v", err)
 	}
+	if err := WriteIOSSupportedDB(filepath.Join(root, "ios-supported", "transcriptions.db")); err != nil {
+		t.Fatalf("WriteIOSSupportedDB() = %v", err)
+	}
 }

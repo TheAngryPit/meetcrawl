@@ -14,7 +14,7 @@ import (
 // LoadArtifacts opens path read-only and returns artifact rows for kind.
 func LoadArtifacts(ctx context.Context, path string, kind source.Kind) ([]Row, error) {
 	if !kind.Valid() {
-		return nil, fmt.Errorf("index: unknown source kind %q", kind)
+		return nil, fmt.Errorf("index: empty source kind")
 	}
 	path = strings.TrimSpace(path)
 	if path == "" {

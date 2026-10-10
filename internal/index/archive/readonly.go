@@ -27,7 +27,7 @@ func OpenReadOnly(ctx context.Context, path string) (*ReadOnlyStore, error) {
 	}
 	if meetings == 0 {
 		_ = inner.Close()
-		return nil, fmt.Errorf("index database %s is missing meetings table (run meetcrawl index)", path)
+		return nil, fmt.Errorf("index database %s is missing meetings table (run meet index)", path)
 	}
 	return &ReadOnlyStore{inner: inner}, nil
 }

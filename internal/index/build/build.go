@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TheAngryPit/meetcrawl/internal/adapters/registry"
 	"github.com/TheAngryPit/meetcrawl/internal/calendar/enrich"
 	calprovider "github.com/TheAngryPit/meetcrawl/internal/calendar/provider"
 	"github.com/TheAngryPit/meetcrawl/internal/index"
@@ -37,6 +38,9 @@ type Result struct {
 func Run(ctx context.Context, opts Options) (Result, error) {
 	var rows []crawler.Row
 	for _, src := range opts.Sources {
+		if !registry.RegisteredKind(src.Kind) {
+			return Result{}, fmt.Errorf("index: unregistered source kind %q", src.Kind)
+		}
 		loaded, err := crawler.LoadArtifacts(ctx, src.Path, src.Kind)
 		if err != nil {
 			return Result{}, err

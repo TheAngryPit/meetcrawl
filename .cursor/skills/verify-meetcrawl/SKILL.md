@@ -5,9 +5,9 @@ description: Verify meetcrawl repo health today (required docs, CI wiring, secre
 
 # verify-meetcrawl
 
-meetcrawl has **no installable app yet**. The verification surface is the **repository itself**: required documentation, GitHub check wiring, and the same docs/secret gate CI runs until `go.mod` exists.
+The verification surface is the **repository itself**: required documentation, GitHub check wiring, docs/secret gates, and (when Phase 1 code is present) `make check && scripts/proof.sh`.
 
-## Product definition of done (Phase 1+, not runnable today)
+## Product definition of done (Phase 1+)
 
 When `go.mod` and `scripts/proof.sh` exist, a product change is done only if this exits **0** on a clean Linux runner with **no network credentials**:
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/TheAngryPit/meetcrawl/internal/index/archive"
 	"github.com/TheAngryPit/meetcrawl/internal/index/reads"
-	"github.com/TheAngryPit/meetcrawl/internal/meetcrawl/buildinfo"
+	"github.com/TheAngryPit/meetcrawl/internal/meet/buildinfo"
 	mconfig "github.com/TheAngryPit/meetcrawl/internal/meetcrawl/config"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )

@@ -44,6 +44,28 @@ func TestUnsupportedSchemaFailsClosed(t *testing.T) {
 	}
 }
 
+func TestSyncIOSSupportedFixture(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	sourceDB := filepath.Join(root, "source", "transcriptions.db")
+	if err := testutil.WriteIOSSupportedDB(sourceDB); err != nil {
+		t.Fatalf("WriteIOSSupportedDB() = %v", err)
+	}
+	cfg := config.Config{
+		Version:  1,
+		DBPath:   filepath.Join(root, "whispcrawl.db"),
+		CacheDir: filepath.Join(root, "cache"),
+		LogDir:   filepath.Join(root, "logs"),
+	}
+	result, err := sync.Run(context.Background(), cfg, sync.Options{SourceDB: sourceDB, CrawlerVersion: "whispcrawl-test"})
+	if err != nil {
+		t.Fatalf("Run() = %v", err)
+	}
+	if result.Artifacts != 3 {
+		t.Fatalf("Artifacts = %d, want 3 (deleted meeting row skipped)", result.Artifacts)
+	}
+}
+
 func TestSyncSupportedFixture(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

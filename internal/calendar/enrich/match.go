@@ -6,7 +6,6 @@ import (
 
 	"github.com/TheAngryPit/meetcrawl/internal/calendar"
 	"github.com/TheAngryPit/meetcrawl/internal/index/crawler"
-	"github.com/TheAngryPit/meetcrawl/internal/source"
 )
 
 // MatchEvent picks a calendar event for row using docs/SPEC.md §10 Q5 order:
@@ -20,7 +19,7 @@ func MatchEvent(row crawler.Row, events []calendar.Event) *calendar.Event {
 			return ev
 		}
 	}
-	if fileID := gmeetFileID(row); fileID != "" {
+	if fileID := attachmentDriveFileID(row); fileID != "" {
 		if ev := matchByAttachment(fileID, events); ev != nil {
 			return ev
 		}
@@ -78,15 +77,13 @@ func windowOverlaps(start, end, point time.Time) bool {
 	return !point.Before(windowStart) && !point.After(windowEnd)
 }
 
-func gmeetFileID(row crawler.Row) string {
-	if row.Source != source.KindGMeetGemini {
-		return ""
-	}
+// attachmentDriveFileID returns a Drive file id when the adapter encoded one in source_id (prefix before "#").
+func attachmentDriveFileID(row crawler.Row) string {
 	sourceID := strings.TrimSpace(row.SourceID)
 	if sourceID == "" {
 		return ""
 	}
-	if idx := strings.Index(sourceID, "#"); idx >= 0 {
+	if idx := strings.Index(sourceID, "#"); idx > 0 {
 		return sourceID[:idx]
 	}
 	return sourceID

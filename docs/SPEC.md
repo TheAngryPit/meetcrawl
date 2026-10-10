@@ -2,7 +2,7 @@
 
 Status: approved by the owner on 2026-10-08. Repo: `TheAngryPit/meetcrawl`. License: MIT.
 
-**Source-agnostic by design.** meetcrawl is meant to archive meeting transcripts from any tool that records them (OpenWhispr, Google Meet/Gemini, Granola, Zoom, Teams, Otter, Fireflies, plain exported files, and so on). Each source is a separate adapter behind one shared contract, and the index never depends on a specific provider. Phase 1 ships the first two adapters; the rest follow without changing the index or the agent surface.
+**Source-agnostic by design.** meetcrawl is meant to archive meeting transcripts from any tool that records them (OpenWhispr, Google Meet/Gemini, Granola, Zoom, Teams, Otter, Fireflies, plain exported files, and so on). Each source is a separate adapter behind one shared contract, and the index never depends on a specific provider. Phase 1 ships three adapters (openwhispr, gmeet-gemini, export-file); more sources register in `internal/adapters/registry` without changing the index or MCP surface.
 
 ## 1. What it is
 A local-first, read-only archive of your meetings that any agent can query. It follows the crawl-app pattern:
@@ -29,7 +29,7 @@ testdata/fixtures/{openwhispr,gdrive,export-file,calendar}/        scripts/proof
 ```
 Go 1.27+ (crawlkit minimum). `make check` mirrors crawlkit: tidy, fmt, vet, unit and race tests with `GOWORK=off`.
 
-**Config and archives (unified `meet` config).** Default config: `~/.config/meetcrawl/config.toml` (`MEETCRAWL_CONFIG`). Index: `~/.local/share/meetcrawl/meetcrawl.db` and `reads.db`. Per-source archive paths remain the legacy keys `whispcrawl_db`, `gmeetcrawl_db`, and `exportcrawl_db` (defaults under `~/.local/share/{whispcrawl,gmeetcrawl,exportcrawl}/`). Nested tables `[openwhispr]`, `[gmeet]`, and `[export_file]` hold source-specific settings (OpenWhispr `source_db`, gmeet `meet_folder_roots` and OAuth paths, export `source_dir`). **Migration:** existing per-crawler configs under `~/.config/{whispcrawl,gmeetcrawl,exportcrawl}/` are not auto-imported; `meet init` writes the unified file. Point archive path keys at existing DB files to reuse data. OAuth client/token paths default to the former gmeetcrawl locations unless overridden in `[gmeet]` or `[calendar]`.
+**Config and archives (unified `meet` config).** Default config: `~/.config/meetcrawl/config.toml` (`MEETCRAWL_CONFIG`). Index: `~/.local/share/meetcrawl/meetcrawl.db` and `reads.db`. Shipped sources register in `internal/adapters/registry`; index, doctor, and crawlbar read that registry (no hard-coded source list in CLI). Per-source archive paths remain the legacy keys `whispcrawl_db`, `gmeetcrawl_db`, and `exportcrawl_db` (defaults under `~/.local/share/{whispcrawl,gmeetcrawl,exportcrawl}/`). Nested tables `[openwhispr]`, `[gmeet]`, and `[export_file]` hold source-specific settings. **`meet index` migration aliases:** `--openwhispr-db` / `--whispcrawl-db`, `--gmeet-db` / `--gmeetcrawl-db`, `--export-file-db` / `--exportcrawl-db` override archive paths per registered source name. **Migration:** existing per-crawler configs under `~/.config/{whispcrawl,gmeetcrawl,exportcrawl}/` are not auto-imported; `meet init` writes the unified file. Point archive path keys at existing DB files to reuse data.
 
 ## 4. Shared base: what we take from crawlkit (no forks, no new shared APIs)
 | Need | crawlkit package |
@@ -63,9 +63,7 @@ Snapshot, backup, mirror (Git) and embed/vector are **not used in phase 1**. Pro
 
 **export-file adapter (`internal/adapters/exportfile`):** VTT/SRT/TXT/Markdown exports via `meet sync --source export-file` (`--fixture` or `--source-dir`).
 
-**graincrawl: Granola (later, not phase 1).** Use upstream `openclaw/graincrawl` pinned to an exact version, not a fork.
-Allowed sources only: `--source public-api` (`GRAINCRAWL_ALLOW_PUBLIC_API=true`, key injected at runtime) or `--source desktop-cache`.
-The private API source (graincrawl's default) is forbidden; a config check rejects it. The index reads graincrawl's archive read-only.
+**graincrawl: Granola (later, not phase 1; wiring out of scope).** A future adapter would register like other sources in `meet`; no graincrawl binary or archive wiring in this phase.
 
 ## 6. Meetings index (`meet index`): thin, rebuildable, read-only over source archives
 Opens each source archive DB with `store.OpenReadOnly` and writes only `meetcrawl.db`. Deleting it and re-running `index` reproduces the same content (an ordered row dump hashes the same).

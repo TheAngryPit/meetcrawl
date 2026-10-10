@@ -29,7 +29,9 @@ Commands:
   init       Create config, reads.db schema, and data directories
   doctor     Check source archive paths and index database
   sync       Sync one source adapter (--source openwhispr|gmeet|export-file)
-  index      Rebuild meetcrawl.db from source archives (read-only; optional --calendar-fixture)
+  index      Rebuild meetcrawl.db from registered source archives (optional --calendar-fixture;
+             per-source archive overrides: --openwhispr-db / --whispcrawl-db, --gmeet-db /
+             --gmeetcrawl-db, --export-file-db / --exportcrawl-db)
   status     Show index status
   search     Full-text search indexed meeting content
   metadata   Emit crawlkit.control.v1 manifest (--json)
@@ -166,9 +168,9 @@ func (a App) runDoctor(w io.Writer, flags GlobalFlags) error {
 		return writeEnvelope(w, report)
 	}
 	printKV(w, "config", report.ConfigPath)
-	printKV(w, "openwhispr_db", report.Archives.Whispcrawl.Exists)
-	printKV(w, "gmeet_db", report.Archives.Gmeetcrawl.Exists)
-	printKV(w, "export_file_db", report.Archives.Exportcrawl.Exists)
+	for _, src := range report.Sources {
+		printKV(w, src.Name+"_archive", src.Exists)
+	}
 	printKV(w, "index_db", report.Archives.Index.Exists)
 	return nil
 }
@@ -194,7 +196,7 @@ func (a App) runSync(ctx context.Context, w io.Writer, flags GlobalFlags, args [
 		FixtureDir: trimFlag(args, "--fixture"),
 		SourceDir:  trimFlag(args, "--source-dir"),
 	}
-	deps := registry.Deps{Config: cfg, CrawlerVersion: buildinfo.Current().Version}
+	deps := registry.Deps{Config: mconfig.ConfigView(cfg), CrawlerVersion: buildinfo.Current().Version}
 	adapter, err := registry.NewAdapter(name, deps, opts)
 	if err != nil {
 		return err
@@ -262,27 +264,6 @@ func (a App) runIndex(ctx context.Context, w io.Writer, flags GlobalFlags, args 
 	if err := reads.EnsureSchema(ctx, cfg.ReadsDBPath); err != nil {
 		return err
 	}
-	whispDB := cfg.WhispcrawlDB
-	if override, ok := flagValue(args, "--openwhispr-db"); ok {
-		whispDB = override
-	}
-	if override, ok := flagValue(args, "--whispcrawl-db"); ok {
-		whispDB = override
-	}
-	gmeetDB := cfg.GmeetcrawlDB
-	if override, ok := flagValue(args, "--gmeet-db"); ok {
-		gmeetDB = override
-	}
-	if override, ok := flagValue(args, "--gmeetcrawl-db"); ok {
-		gmeetDB = override
-	}
-	exportDB := cfg.ExportcrawlDB
-	if override, ok := flagValue(args, "--export-file-db"); ok {
-		exportDB = override
-	}
-	if override, ok := flagValue(args, "--exportcrawl-db"); ok {
-		exportDB = override
-	}
 	calendarOpts := calprovider.Options{
 		FixtureDir:      cfg.Calendar.FixtureDir,
 		OAuthClientPath: cfg.Calendar.OAuthClientPath,
@@ -295,11 +276,7 @@ func (a App) runIndex(ctx context.Context, w io.Writer, flags GlobalFlags, args 
 		IndexDBPath: cfg.DBPath,
 		Privacy:     cfg.Privacy,
 		Calendar:    calendarOpts,
-		Sources: []build.SourceArchive{
-			{Kind: source.KindOpenWhispr, Path: whispDB},
-			{Kind: source.KindGMeetGemini, Path: gmeetDB},
-			{Kind: source.KindExportFile, Path: exportDB},
-		},
+		Sources:     toBuildSources(registry.IndexArchives(mconfig.ConfigView(cfg), parseArchiveOverrides(args))),
 	})
 	if err != nil {
 		if flags.JSON {

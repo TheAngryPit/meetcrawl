@@ -113,7 +113,7 @@ func loginViaLoopback(ctx context.Context, cfg *oauth2.Config, state, verifier s
 		_ = opts.OpenBrowser(authURL)
 	}
 	if opts.Out != nil {
-		fmt.Fprintf(opts.Out, "Open this URL to authorize gmeetcrawl:\n%s\n\n", authURL)
+		fmt.Fprintf(opts.Out, "Open this URL to authorize meet (Google Drive/Calendar read-only):\n%s\n\n", authURL)
 	}
 
 	type result struct {

@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/TheAngryPit/meetcrawl/internal/adapters/registry"
 	mconfig "github.com/TheAngryPit/meetcrawl/internal/meetcrawl/config"
 	"github.com/openclaw/crawlkit/control"
 )
@@ -13,28 +14,35 @@ func ControlManifest(configPath string, cfg mconfig.Config) control.Manifest {
 	_ = configPath
 	_ = cfg
 	manifest := control.NewManifest("meet", "Meetings Index", "meet")
-	manifest.Description = "Local-first meetings index with pluggable source adapters (OpenWhispr, Google Meet/Gemini, export-file)."
+	manifest.Description = "Local-first meetings index with pluggable source adapters."
 	manifest.Paths = portableManifestPaths()
 	manifest.Capabilities = []string{"metadata", "status", "doctor", "sync", "index", "search"}
 	manifest.Commands = map[string]control.Command{
 		"metadata": {Title: "Metadata", Argv: []string{"meet", "metadata", "--json"}, JSON: true},
 		"status":   {Title: "Status", Argv: []string{"meet", "status", "--json"}, JSON: true},
 		"doctor":   {Title: "Doctor", Argv: []string{"meet", "doctor", "--json"}, JSON: true},
-		"sync":     {Title: "Sync source", Argv: []string{"meet", "sync", "--json", "--source", "openwhispr"}, JSON: true, Mutates: true},
 		"index":    {Title: "Index", Argv: []string{"meet", "index", "--json"}, JSON: true, Mutates: true},
 		"search":   {Title: "Search", Argv: []string{"meet", "search", "--json"}, JSON: true},
+	}
+	for _, name := range registry.Names() {
+		key := syncCommandKey(name)
+		manifest.Commands[key] = control.Command{
+			Title:   "Sync " + string(name),
+			Argv:    []string{"meet", "sync", "--json", "--source", string(name)},
+			JSON:    true,
+			Mutates: true,
+		}
 	}
 	manifest.Privacy = control.Privacy{
 		ContainsPrivateMessages: true,
 		ExportsSecrets:          false,
-		LocalOnlyScopes: []string{
-			"openwhispr SQLite archive",
-			"gmeet-gemini SQLite archive",
-			"export-file SQLite archive",
-			"meet index SQLite archive",
-		},
+		LocalOnlyScopes:         registry.LocalOnlyScopes(),
 	}
 	return manifest
+}
+
+func syncCommandKey(name registry.Name) string {
+	return "sync-" + strings.ReplaceAll(string(name), "-", "_")
 }
 
 func ValidateManifest(m control.Manifest) error {

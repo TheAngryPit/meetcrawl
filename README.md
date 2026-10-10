@@ -14,7 +14,7 @@ meet init   # ~/.config/meetcrawl/config.toml
 
 A transcript stays in the tool that recorded it. OpenWhispr stores one local database. Google Meet writes Gemini notes to Drive. Zoom, Teams, Otter, Fireflies, and plain exports each keep a separate copy. Search crosses those tools one at a time. An agent that opens a source can also write to that source.
 
-meetcrawl is source-agnostic. It copies transcripts into one local SQLite index, with a separate adapter for each source. The index and the agent tools stay the same for every adapter. Phase 1 names the first two adapters.
+meetcrawl is source-agnostic. It copies transcripts into one local SQLite index, with a separate adapter for each source. The index and the agent tools stay the same for every adapter. Phase 1 ships three adapters (OpenWhispr, Google Meet/Gemini, export-file).
 
 ## Principles
 

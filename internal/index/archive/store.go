@@ -42,11 +42,11 @@ type SourceLink struct {
 }
 
 type Status struct {
-	Meetings  int
-	Contents  int
-	Sources   int
-	LastIndex time.Time
-	DBPath    string
+	Meetings  int       `json:"meetings"`
+	Contents  int       `json:"contents"`
+	Sources   int       `json:"sources"`
+	LastIndex time.Time `json:"last_index"`
+	DBPath    string    `json:"db_path"`
 }
 
 type SearchHit struct {

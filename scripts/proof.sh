@@ -70,9 +70,39 @@ build_binaries() {
   ) >>"${PROOF_DIR}/build.log" 2>&1
 }
 
+run_doctor_after_init() {
+  log "check: doctor after init"
+  "${BINDIR}/meet" --json doctor >>"${PROOF_DIR}/doctor.log" 2>&1
+  log "doctor ok"
+}
+
+run_auth_no_network() {
+  log "check: auth fails closed without oauth client (no network)"
+  local auth_code=0 auth_out
+  set +e
+  auth_out="$("${BINDIR}/meet" --json auth 2>&1)"
+  auth_code=$?
+  set -e
+  echo "${auth_out}" >>"${PROOF_DIR}/auth.log"
+  [[ "${auth_code}" -ne 0 ]] || fail "meet auth exited 0 without oauth client"
+  printf '%s' "${auth_out}" | grep -qi 'oauth' || fail "auth missing oauth client hint"
+  log "auth fail-closed ok"
+}
+
+run_registry_synthetic_test() {
+  log "check: registry synthetic adapter index + MCP"
+  (
+    cd "${REPO_ROOT}"
+    HOME="${BUILD_HOME}" GOWORK=off go test ./internal/adapters/registry/ -run TestSyntheticAdapterIndexAndMCP -count=1
+  ) >>"${PROOF_DIR}/registry-synthetic.log" 2>&1
+  log "registry synthetic test ok"
+}
+
 run_sync_ingest() {
   log "check 1: meet sync ingest counts"
   "${BINDIR}/meet" init >>"${PROOF_DIR}/meet-init.log" 2>&1
+  run_doctor_after_init
+  run_auth_no_network
   local whisp_out
   whisp_out="$("${BINDIR}/meet" --json sync --source openwhispr --source-db "${WHISP_SUPPORTED_DB}" 2>>"${PROOF_DIR}/whisp-sync.log")"
   echo "${whisp_out}" >>"${PROOF_DIR}/whisp-sync.log"
@@ -180,7 +210,13 @@ snip = (hits[0].get("snippet") or "").lower()
 if "reuni" not in snip:
     raise SystemExit(2)
 PY
-  log "index dedup and pt-PT search ok"
+  local status_out
+  status_out="$("${BINDIR}/meet" --json status 2>>"${PROOF_DIR}/status.log")"
+  echo "${status_out}" >>"${PROOF_DIR}/status.log"
+  local status_meetings
+  status_meetings="$(json_get result.meetings "${status_out}")"
+  [[ "${status_meetings}" == "2" ]] || fail "status meetings=${status_meetings} want 2"
+  log "index dedup, pt-PT search, and status ok"
 }
 
 run_mcp_check() {
@@ -294,6 +330,10 @@ summary = {
         "index_rebuild_hash",
         "metadata_control_v1_no_remote_deps",
         "unsupported_schema_fail_closed",
+        "doctor_after_init",
+        "auth_fail_closed_no_oauth",
+        "status_after_index",
+        "registry_synthetic_index_mcp",
     ],
     "index_dump_hash": (root / "index-dump.hash").read_text().strip() if (root / "index-dump.hash").exists() else "",
     "metadata_check": "passed",
@@ -320,6 +360,7 @@ main() {
   run_rebuild_hash
   run_metadata_deps_check
   run_unsupported_schema
+  run_registry_synthetic_test
   write_summary
   log "proof ok"
 }

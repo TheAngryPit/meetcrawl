@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/TheAngryPit/meetcrawl/internal/adapters/registry"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
 	"github.com/TheAngryPit/meetcrawl/internal/index/privacy"
@@ -303,15 +304,21 @@ func EnsureDirs(cfg Config) error {
 	return EnsureSourceDirs(cfg)
 }
 
-// EnsureSourceDirs creates cache/log dirs for each source archive.
+// EnsureSourceDirs creates cache/log dirs for each registered source adapter.
 func EnsureSourceDirs(cfg Config) error {
-	if err := wconfig.EnsureDirs(cfg.WhispConfig()); err != nil {
-		return err
-	}
-	if err := gconfig.EnsureDirs(cfg.GMeetConfig()); err != nil {
-		return err
-	}
-	return econfig.EnsureDirs(cfg.ExportFileConfig())
+	return registry.EnsureSourceArchives(ConfigView(cfg))
+}
+
+// ConfigView adapts Config for the adapter registry without an import cycle.
+type ConfigView Config
+
+func (c ConfigView) OpenWhisprArchiveDB() string { return c.WhispcrawlDB }
+func (c ConfigView) GMeetArchiveDB() string      { return c.GmeetcrawlDB }
+func (c ConfigView) ExportFileArchiveDB() string { return c.ExportcrawlDB }
+func (c ConfigView) WhispConfig() wconfig.Config { return Config(c).WhispConfig() }
+func (c ConfigView) GMeetConfig() gconfig.Config { return Config(c).GMeetConfig() }
+func (c ConfigView) ExportFileConfig() econfig.Config {
+	return Config(c).ExportFileConfig()
 }
 
 func MarshalPreview(cfg Config) ([]byte, error) {

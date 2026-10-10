@@ -1,93 +1,117 @@
 {
-  "schema_version": "crawlkit.control.v1",
-  "id": "meet",
-  "display_name": "Meetings Index",
-  "description": "Local-first meetings index with pluggable source adapters (OpenWhispr, Google Meet/Gemini, export-file).",
-  "binary": {
-    "name": "meet"
-  },
-  "branding": {},
-  "paths": {
-    "default_config": "~/.config/meetcrawl/config.toml",
-    "config_env": "MEETCRAWL_CONFIG",
-    "default_database": "~/.local/share/meetcrawl/meetcrawl.db"
-  },
-  "commands": {
-    "doctor": {
-      "title": "Doctor",
-      "argv": [
-        "meet",
-        "doctor",
-        "--json"
-      ],
-      "json": true
+    "schema_version": "crawlkit.control.v1",
+    "id": "meet",
+    "display_name": "Meetings Index",
+    "description": "Local-first meetings index with pluggable source adapters.",
+    "binary": {
+        "name": "meet"
     },
-    "index": {
-      "title": "Index",
-      "argv": [
-        "meet",
-        "index",
-        "--json"
-      ],
-      "json": true,
-      "mutates": true
+    "branding": {},
+    "paths": {
+        "default_config": "~/.config/meetcrawl/config.toml",
+        "config_env": "MEETCRAWL_CONFIG",
+        "default_database": "~/.local/share/meetcrawl/meetcrawl.db"
     },
-    "metadata": {
-      "title": "Metadata",
-      "argv": [
-        "meet",
+    "commands": {
+        "doctor": {
+            "title": "Doctor",
+            "argv": [
+                "meet",
+                "doctor",
+                "--json"
+            ],
+            "json": true
+        },
+        "index": {
+            "title": "Index",
+            "argv": [
+                "meet",
+                "index",
+                "--json"
+            ],
+            "json": true,
+            "mutates": true
+        },
+        "metadata": {
+            "title": "Metadata",
+            "argv": [
+                "meet",
+                "metadata",
+                "--json"
+            ],
+            "json": true
+        },
+        "search": {
+            "title": "Search",
+            "argv": [
+                "meet",
+                "search",
+                "--json"
+            ],
+            "json": true
+        },
+        "status": {
+            "title": "Status",
+            "argv": [
+                "meet",
+                "status",
+                "--json"
+            ],
+            "json": true
+        },
+        "sync-export_file": {
+            "title": "Sync export-file",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "export-file"
+            ],
+            "json": true,
+            "mutates": true
+        },
+        "sync-gmeet": {
+            "title": "Sync gmeet",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "gmeet"
+            ],
+            "json": true,
+            "mutates": true
+        },
+        "sync-openwhispr": {
+            "title": "Sync openwhispr",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "openwhispr"
+            ],
+            "json": true,
+            "mutates": true
+        }
+    },
+    "capabilities": [
         "metadata",
-        "--json"
-      ],
-      "json": true
-    },
-    "search": {
-      "title": "Search",
-      "argv": [
-        "meet",
-        "search",
-        "--json"
-      ],
-      "json": true
-    },
-    "status": {
-      "title": "Status",
-      "argv": [
-        "meet",
         "status",
-        "--json"
-      ],
-      "json": true
-    },
-    "sync": {
-      "title": "Sync source",
-      "argv": [
-        "meet",
+        "doctor",
         "sync",
-        "--json",
-        "--source",
-        "openwhispr"
-      ],
-      "json": true,
-      "mutates": true
+        "index",
+        "search"
+    ],
+    "privacy": {
+        "contains_private_messages": true,
+        "exports_secrets": false,
+        "local_only_scopes": [
+            "openwhispr SQLite archive",
+            "gmeet-gemini SQLite archive",
+            "export-file SQLite archive",
+            "meet index SQLite archive"
+        ]
     }
-  },
-  "capabilities": [
-    "metadata",
-    "status",
-    "doctor",
-    "sync",
-    "index",
-    "search"
-  ],
-  "privacy": {
-    "contains_private_messages": true,
-    "exports_secrets": false,
-    "local_only_scopes": [
-      "openwhispr SQLite archive",
-      "gmeet-gemini SQLite archive",
-      "export-file SQLite archive",
-      "meet index SQLite archive"
-    ]
-  }
 }

@@ -24,6 +24,8 @@ func parseArchiveOverrides(args []string) map[registry.Name]string {
 	set("grain", "--graincrawl-db")
 	set("granola", "--granola-db")
 	set("granola", "--granolacrawl-db")
+	set("fireflies", "--fireflies-db")
+	set("fireflies", "--fireflyescrawl-db")
 	return out
 }
 

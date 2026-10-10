@@ -22,6 +22,7 @@ EXPORT_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/export-file/supported"
 EXPORT_UNSUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/export-file/unsupported"
 GRAIN_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/grain/supported"
 GRANOLA_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/granola/supported"
+FIREFLIES_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/fireflies/supported"
 CALENDAR_FIX="${REPO_ROOT}/testdata/fixtures/calendar/synthetic"
 
 mkdir -p "${PROOF_DIR}"
@@ -139,7 +140,14 @@ run_sync_ingest() {
   local granola_artifacts
   granola_artifacts="$(json_get result.artifacts "${granola_out}")"
   [[ "${granola_artifacts}" == "1" ]] || fail "granola artifacts=${granola_artifacts} want 1"
-  log "sync ingest ok (3 + 3 + 4 + 1 + 1 artifacts)"
+
+  local fireflies_out
+  fireflies_out="$("${BINDIR}/meet" --json sync --source fireflies --fixture "${FIREFLIES_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/fireflies-sync.log")"
+  echo "${fireflies_out}" >>"${PROOF_DIR}/fireflies-sync.log"
+  local fireflies_artifacts
+  fireflies_artifacts="$(json_get result.artifacts "${fireflies_out}")"
+  [[ "${fireflies_artifacts}" == "1" ]] || fail "fireflies artifacts=${fireflies_artifacts} want 1"
+  log "sync ingest ok (3 + 3 + 4 + 1 + 1 + 1 artifacts)"
 }
 
 patch_meetcrawl_privacy() {

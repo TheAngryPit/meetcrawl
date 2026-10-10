@@ -15,6 +15,8 @@ const AccountGrainPAT = "grain-pat"
 
 const AccountGranolaAPIKey = "granola-api-key"
 
+const AccountFirefliesAPIKey = "fireflies-api-key"
+
 type KeychainBackend interface {
 	Get(service, account string) (string, error)
 }

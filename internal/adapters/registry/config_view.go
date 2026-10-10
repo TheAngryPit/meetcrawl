@@ -2,6 +2,7 @@ package registry
 
 import (
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
+	firefliesconfig "github.com/TheAngryPit/meetcrawl/internal/fireflies/config"
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
 	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
 	granolaconfig "github.com/TheAngryPit/meetcrawl/internal/granola/config"
@@ -15,9 +16,11 @@ type ConfigView interface {
 	ExportFileArchiveDB() string
 	GrainArchiveDB() string
 	GranolaArchiveDB() string
+	FirefliesArchiveDB() string
 	WhispConfig() wconfig.Config
 	GMeetConfig() gconfig.Config
 	ExportFileConfig() econfig.Config
 	GrainConfig() grainconfig.Config
 	GranolaConfig() granolaconfig.Config
+	FirefliesConfig() firefliesconfig.Config
 }

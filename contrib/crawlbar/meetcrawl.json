@@ -107,6 +107,18 @@
             "json": true,
             "mutates": true
         },
+        "sync-fireflies": {
+            "title": "Sync fireflies",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "fireflies"
+            ],
+            "json": true,
+            "mutates": true
+        },
         "sync-openwhispr": {
             "title": "Sync openwhispr",
             "argv": [
@@ -137,6 +149,7 @@
             "export-file SQLite archive",
             "grain SQLite archive",
             "granola SQLite archive",
+            "fireflies SQLite archive",
             "meet index SQLite archive"
         ]
     }

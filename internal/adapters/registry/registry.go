@@ -7,10 +7,12 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/exportfile"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/gmeet"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/grain"
+	"github.com/TheAngryPit/meetcrawl/internal/adapters/granola"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/openwhispr"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
 	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
+	granolaconfig "github.com/TheAngryPit/meetcrawl/internal/granola/config"
 	"github.com/TheAngryPit/meetcrawl/internal/secret"
 	"github.com/TheAngryPit/meetcrawl/internal/source"
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
@@ -153,6 +155,26 @@ func init() {
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.GrainConfig()
 			return grain.Adapter{
+				Config:         cfg,
+				FixtureDir:     o.FixtureDir,
+				CrawlerVersion: d.CrawlerVersion,
+				Secrets:        d.Secrets,
+			}
+		},
+	})
+	Register(Entry{
+		Name:  "granola",
+		Kind:  source.KindGranola,
+		Scope: "granola SQLite archive",
+		ArchivePath: func(c ConfigView) string {
+			return c.GranolaArchiveDB()
+		},
+		EnsureDirs: func(c ConfigView) error {
+			return granolaconfig.EnsureDirs(c.GranolaConfig())
+		},
+		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
+			cfg := d.Config.GranolaConfig()
+			return granola.Adapter{
 				Config:         cfg,
 				FixtureDir:     o.FixtureDir,
 				CrawlerVersion: d.CrawlerVersion,

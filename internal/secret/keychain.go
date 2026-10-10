@@ -13,6 +13,8 @@ const KeychainService = "meetcrawl"
 
 const AccountGrainPAT = "grain-pat"
 
+const AccountGranolaAPIKey = "granola-api-key"
+
 type KeychainBackend interface {
 	Get(service, account string) (string, error)
 }

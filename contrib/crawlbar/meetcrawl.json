@@ -95,6 +95,18 @@
             "json": true,
             "mutates": true
         },
+        "sync-granola": {
+            "title": "Sync granola",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "granola"
+            ],
+            "json": true,
+            "mutates": true
+        },
         "sync-openwhispr": {
             "title": "Sync openwhispr",
             "argv": [
@@ -124,6 +136,7 @@
             "gmeet-gemini SQLite archive",
             "export-file SQLite archive",
             "grain SQLite archive",
+            "granola SQLite archive",
             "meet index SQLite archive"
         ]
     }

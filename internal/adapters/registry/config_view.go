@@ -4,6 +4,7 @@ import (
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
 	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
+	granolaconfig "github.com/TheAngryPit/meetcrawl/internal/granola/config"
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
 )
 
@@ -13,8 +14,10 @@ type ConfigView interface {
 	GMeetArchiveDB() string
 	ExportFileArchiveDB() string
 	GrainArchiveDB() string
+	GranolaArchiveDB() string
 	WhispConfig() wconfig.Config
 	GMeetConfig() gconfig.Config
 	ExportFileConfig() econfig.Config
 	GrainConfig() grainconfig.Config
+	GranolaConfig() granolaconfig.Config
 }

@@ -20,6 +20,7 @@ GMEET_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/gdrive/supported"
 GMEET_UNSUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/gdrive/unsupported"
 EXPORT_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/export-file/supported"
 EXPORT_UNSUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/export-file/unsupported"
+GRAIN_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/grain/supported"
 CALENDAR_FIX="${REPO_ROOT}/testdata/fixtures/calendar/synthetic"
 
 mkdir -p "${PROOF_DIR}"
@@ -123,7 +124,14 @@ run_sync_ingest() {
   local export_artifacts
   export_artifacts="$(json_get result.artifacts "${export_out}")"
   [[ "${export_artifacts}" == "4" ]] || fail "export-file artifacts=${export_artifacts} want 4"
-  log "sync ingest ok (3 + 3 + 4 artifacts)"
+
+  local grain_out
+  grain_out="$("${BINDIR}/meet" --json sync --source grain --fixture "${GRAIN_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/grain-sync.log")"
+  echo "${grain_out}" >>"${PROOF_DIR}/grain-sync.log"
+  local grain_artifacts
+  grain_artifacts="$(json_get result.artifacts "${grain_out}")"
+  [[ "${grain_artifacts}" == "1" ]] || fail "grain artifacts=${grain_artifacts} want 1"
+  log "sync ingest ok (3 + 3 + 4 + 1 artifacts)"
 }
 
 patch_meetcrawl_privacy() {

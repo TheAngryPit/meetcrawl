@@ -5,11 +5,14 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/registry"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
+	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
 	"github.com/TheAngryPit/meetcrawl/internal/index/privacy"
+	"github.com/TheAngryPit/meetcrawl/internal/secret"
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
 	ckconfig "github.com/openclaw/crawlkit/config"
 	"github.com/pelletier/go-toml/v2"
@@ -54,6 +57,19 @@ type ExportFileSection struct {
 	PrivacyClass string `toml:"privacy_class,omitempty" json:"privacy_class,omitempty"`
 }
 
+// SecretsSection selects where adapter API keys are resolved (never stored in repo or archives).
+type SecretsSection struct {
+	Provider  string `toml:"provider,omitempty" json:"provider,omitempty"`
+	OpCommand string `toml:"op_command,omitempty" json:"op_command,omitempty"`
+}
+
+// GrainSection holds Grain API ingest settings; archive path stays graincrawl_db.
+type GrainSection struct {
+	CacheDir string `toml:"cache_dir,omitempty" json:"cache_dir,omitempty"`
+	LogDir   string `toml:"log_dir,omitempty" json:"log_dir,omitempty"`
+	PATRef   string `toml:"pat_ref,omitempty" json:"pat_ref,omitempty"`
+}
+
 type Config struct {
 	Version       int               `toml:"version" json:"version"`
 	DBPath        string            `toml:"db_path" json:"db_path"`
@@ -61,9 +77,12 @@ type Config struct {
 	WhispcrawlDB  string            `toml:"whispcrawl_db" json:"whispcrawl_db"`
 	GmeetcrawlDB  string            `toml:"gmeetcrawl_db" json:"gmeetcrawl_db"`
 	ExportcrawlDB string            `toml:"exportcrawl_db" json:"exportcrawl_db"`
+	GraincrawlDB  string            `toml:"graincrawl_db" json:"graincrawl_db"`
 	OpenWhispr    OpenWhisprSection `toml:"openwhispr" json:"openwhispr"`
 	GMeet         GMeetSection      `toml:"gmeet" json:"gmeet"`
 	ExportFile    ExportFileSection `toml:"export_file" json:"export_file"`
+	Grain         GrainSection      `toml:"grain" json:"grain"`
+	Secrets       SecretsSection    `toml:"secrets" json:"secrets"`
 	Privacy       privacy.Config    `toml:"privacy" json:"privacy"`
 	Calendar      CalendarConfig    `toml:"calendar" json:"calendar"`
 	MCP           MCPConfig         `toml:"mcp" json:"mcp"`
@@ -94,6 +113,10 @@ func Defaults() (Config, string, error) {
 	if err != nil {
 		return Config{}, "", err
 	}
+	grainDefaults, _, err := grainconfig.Defaults()
+	if err != nil {
+		return Config{}, "", err
+	}
 	cfg := Config{
 		Version:       1,
 		DBPath:        paths.DBPath,
@@ -101,6 +124,7 @@ func Defaults() (Config, string, error) {
 		WhispcrawlDB:  whispDefaults.DBPath,
 		GmeetcrawlDB:  gmeetDefaults.DBPath,
 		ExportcrawlDB: exportDefaults.DBPath,
+		GraincrawlDB:  grainDefaults.DBPath,
 		OpenWhispr: OpenWhisprSection{
 			SourceDB: whispDefaults.SourceDB,
 			CacheDir: whispDefaults.CacheDir,
@@ -117,6 +141,14 @@ func Defaults() (Config, string, error) {
 			CacheDir:     exportDefaults.CacheDir,
 			LogDir:       exportDefaults.LogDir,
 			PrivacyClass: exportDefaults.PrivacyClass,
+		},
+		Grain: GrainSection{
+			CacheDir: grainDefaults.CacheDir,
+			LogDir:   grainDefaults.LogDir,
+			PATRef:   secret.AccountGrainPAT,
+		},
+		Secrets: SecretsSection{
+			Provider: secret.ProviderKeychain,
 		},
 		Calendar: CalendarConfig{
 			OAuthClientPath: gmeetDefaults.OAuthClientPath,
@@ -150,6 +182,7 @@ func Load(configPath string) (Config, string, error) {
 	cfg.WhispcrawlDB = ckconfig.ExpandHome(cfg.WhispcrawlDB)
 	cfg.GmeetcrawlDB = ckconfig.ExpandHome(cfg.GmeetcrawlDB)
 	cfg.ExportcrawlDB = ckconfig.ExpandHome(cfg.ExportcrawlDB)
+	cfg.GraincrawlDB = ckconfig.ExpandHome(cfg.GraincrawlDB)
 	cfg.OpenWhispr.SourceDB = ckconfig.ExpandHome(cfg.OpenWhispr.SourceDB)
 	cfg.OpenWhispr.CacheDir = ckconfig.ExpandHome(cfg.OpenWhispr.CacheDir)
 	cfg.OpenWhispr.LogDir = ckconfig.ExpandHome(cfg.OpenWhispr.LogDir)
@@ -160,6 +193,8 @@ func Load(configPath string) (Config, string, error) {
 	cfg.ExportFile.SourceDir = ckconfig.ExpandHome(cfg.ExportFile.SourceDir)
 	cfg.ExportFile.CacheDir = ckconfig.ExpandHome(cfg.ExportFile.CacheDir)
 	cfg.ExportFile.LogDir = ckconfig.ExpandHome(cfg.ExportFile.LogDir)
+	cfg.Grain.CacheDir = ckconfig.ExpandHome(cfg.Grain.CacheDir)
+	cfg.Grain.LogDir = ckconfig.ExpandHome(cfg.Grain.LogDir)
 	cfg.Calendar.FixtureDir = ckconfig.ExpandHome(cfg.Calendar.FixtureDir)
 	cfg.Calendar.OAuthClientPath = ckconfig.ExpandHome(cfg.Calendar.OAuthClientPath)
 	cfg.Calendar.TokenPath = ckconfig.ExpandHome(cfg.Calendar.TokenPath)
@@ -194,6 +229,13 @@ func Load(configPath string) (Config, string, error) {
 		}
 		cfg.ExportcrawlDB = exportDefaults.DBPath
 	}
+	if cfg.GraincrawlDB == "" {
+		grainDefaults, _, err := grainconfig.Defaults()
+		if err != nil {
+			return Config{}, resolved, err
+		}
+		cfg.GraincrawlDB = grainDefaults.DBPath
+	}
 	if cfg.Calendar.OAuthClientPath == "" {
 		gmeetDefaults, _, err := gconfig.Defaults()
 		if err != nil {
@@ -216,6 +258,7 @@ func fillSourceSections(cfg Config) Config {
 	whispDefaults, _, _ := wconfig.Defaults()
 	gmeetDefaults, _, _ := gconfig.Defaults()
 	exportDefaults, _, _ := econfig.Defaults()
+	grainDefaults, _, _ := grainconfig.Defaults()
 	if cfg.OpenWhispr.SourceDB == "" {
 		cfg.OpenWhispr.SourceDB = whispDefaults.SourceDB
 	}
@@ -248,6 +291,18 @@ func fillSourceSections(cfg Config) Config {
 	}
 	if cfg.ExportFile.PrivacyClass == "" {
 		cfg.ExportFile.PrivacyClass = exportDefaults.PrivacyClass
+	}
+	if cfg.Grain.CacheDir == "" {
+		cfg.Grain.CacheDir = grainDefaults.CacheDir
+	}
+	if cfg.Grain.LogDir == "" {
+		cfg.Grain.LogDir = grainDefaults.LogDir
+	}
+	if strings.TrimSpace(cfg.Grain.PATRef) == "" {
+		cfg.Grain.PATRef = secret.AccountGrainPAT
+	}
+	if strings.TrimSpace(cfg.Secrets.Provider) == "" {
+		cfg.Secrets.Provider = secret.ProviderKeychain
 	}
 	return cfg
 }
@@ -288,6 +343,24 @@ func (c Config) ExportFileConfig() econfig.Config {
 	}
 }
 
+func (c Config) GrainConfig() grainconfig.Config {
+	return grainconfig.Config{
+		Version:         c.Version,
+		DBPath:          c.GraincrawlDB,
+		CacheDir:        c.Grain.CacheDir,
+		LogDir:          c.Grain.LogDir,
+		PATRef:          c.Grain.PATRef,
+		SecretsProvider: c.Secrets.Provider,
+	}
+}
+
+func (c Config) SecretProvider() (secret.Provider, error) {
+	return secret.NewProvider(secret.Options{
+		Provider:  c.Secrets.Provider,
+		OpCommand: c.Secrets.OpCommand,
+	})
+}
+
 func Save(path string, cfg Config) error {
 	return ckconfig.WriteTOML(path, cfg, 0o600)
 }
@@ -315,10 +388,14 @@ type ConfigView Config
 func (c ConfigView) OpenWhisprArchiveDB() string { return c.WhispcrawlDB }
 func (c ConfigView) GMeetArchiveDB() string      { return c.GmeetcrawlDB }
 func (c ConfigView) ExportFileArchiveDB() string { return c.ExportcrawlDB }
+func (c ConfigView) GrainArchiveDB() string      { return c.GraincrawlDB }
 func (c ConfigView) WhispConfig() wconfig.Config { return Config(c).WhispConfig() }
 func (c ConfigView) GMeetConfig() gconfig.Config { return Config(c).GMeetConfig() }
 func (c ConfigView) ExportFileConfig() econfig.Config {
 	return Config(c).ExportFileConfig()
+}
+func (c ConfigView) GrainConfig() grainconfig.Config {
+	return Config(c).GrainConfig()
 }
 
 func MarshalPreview(cfg Config) ([]byte, error) {

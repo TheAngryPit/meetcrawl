@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "recordings": [
+    {
+      "id": "synthetic-grain-001",
+      "title": "Synthetic standup",
+      "start_datetime": "2026-01-15T14:00:00Z",
+      "end_datetime": "2026-01-15T14:30:00Z",
+      "transcript_path": "transcripts/standup.json",
+      "calendar_event": {
+        "ical_uid": "cal-synthetic-001"
+      }
+    }
+  ]
+}

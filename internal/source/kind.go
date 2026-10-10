@@ -15,6 +15,7 @@ const (
 	KindGMeetGemini Kind = "gmeet-gemini"
 	KindExportFile  Kind = "export-file"
 	KindGrain       Kind = "grain"
+	KindGranola     Kind = "granola"
 )
 
 func (k Kind) String() string { return string(k) }

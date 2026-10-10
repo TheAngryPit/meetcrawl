@@ -1,0 +1,10 @@
+[
+  {
+    "speaker": {
+      "source": "invalid-source"
+    },
+    "text": "Should fail schema validation.",
+    "start_time": "2026-01-15T14:00:10Z",
+    "end_time": "2026-01-15T14:00:40Z"
+  }
+]

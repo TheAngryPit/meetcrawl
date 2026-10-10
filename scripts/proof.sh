@@ -21,6 +21,7 @@ GMEET_UNSUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/gdrive/unsupported"
 EXPORT_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/export-file/supported"
 EXPORT_UNSUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/export-file/unsupported"
 GRAIN_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/grain/supported"
+GRANOLA_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/granola/supported"
 CALENDAR_FIX="${REPO_ROOT}/testdata/fixtures/calendar/synthetic"
 
 mkdir -p "${PROOF_DIR}"
@@ -131,7 +132,14 @@ run_sync_ingest() {
   local grain_artifacts
   grain_artifacts="$(json_get result.artifacts "${grain_out}")"
   [[ "${grain_artifacts}" == "1" ]] || fail "grain artifacts=${grain_artifacts} want 1"
-  log "sync ingest ok (3 + 3 + 4 + 1 artifacts)"
+
+  local granola_out
+  granola_out="$("${BINDIR}/meet" --json sync --source granola --fixture "${GRANOLA_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/granola-sync.log")"
+  echo "${granola_out}" >>"${PROOF_DIR}/granola-sync.log"
+  local granola_artifacts
+  granola_artifacts="$(json_get result.artifacts "${granola_out}")"
+  [[ "${granola_artifacts}" == "1" ]] || fail "granola artifacts=${granola_artifacts} want 1"
+  log "sync ingest ok (3 + 3 + 4 + 1 + 1 artifacts)"
 }
 
 patch_meetcrawl_privacy() {

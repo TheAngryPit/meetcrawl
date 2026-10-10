@@ -28,7 +28,7 @@ Usage:
 Commands:
   init       Create config, reads.db schema, and data directories
   doctor     Check source archive paths and index database
-  sync       Sync one source adapter (--source openwhispr|gmeet|export-file|grain|granola)
+  sync       Sync one source adapter (--source openwhispr|gmeet|export-file|grain|granola|fireflies)
   index      Rebuild meetcrawl.db from registered source archives (optional --calendar-fixture;
              per-source archive overrides: --openwhispr-db / --whispcrawl-db, --gmeet-db /
              --gmeetcrawl-db, --export-file-db / --exportcrawl-db)
@@ -178,7 +178,7 @@ func (a App) runDoctor(w io.Writer, flags GlobalFlags) error {
 func (a App) runSync(ctx context.Context, w io.Writer, flags GlobalFlags, args []string) error {
 	sourceRaw, ok := flagValue(args, "--source")
 	if !ok || strings.TrimSpace(sourceRaw) == "" {
-		return fmt.Errorf("usage: meet sync --source openwhispr|gmeet|export-file|grain|granola [flags]")
+		return fmt.Errorf("usage: meet sync --source openwhispr|gmeet|export-file|grain|granola|fireflies [flags]")
 	}
 	name, err := registry.ParseName(sourceRaw)
 	if err != nil {

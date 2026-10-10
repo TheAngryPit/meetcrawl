@@ -9,6 +9,7 @@ import (
 
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/registry"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
+	firefliesconfig "github.com/TheAngryPit/meetcrawl/internal/fireflies/config"
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
 	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
 	granolaconfig "github.com/TheAngryPit/meetcrawl/internal/granola/config"
@@ -78,24 +79,33 @@ type GranolaSection struct {
 	APIKeyRef string `toml:"api_key_ref,omitempty" json:"api_key_ref,omitempty"`
 }
 
+// FirefliesSection holds Fireflies GraphQL API ingest settings; archive path stays fireflyescrawl_db.
+type FirefliesSection struct {
+	CacheDir  string `toml:"cache_dir,omitempty" json:"cache_dir,omitempty"`
+	LogDir    string `toml:"log_dir,omitempty" json:"log_dir,omitempty"`
+	APIKeyRef string `toml:"api_key_ref,omitempty" json:"api_key_ref,omitempty"`
+}
+
 type Config struct {
-	Version        int               `toml:"version" json:"version"`
-	DBPath         string            `toml:"db_path" json:"db_path"`
-	ReadsDBPath    string            `toml:"reads_db_path" json:"reads_db_path"`
-	WhispcrawlDB   string            `toml:"whispcrawl_db" json:"whispcrawl_db"`
-	GmeetcrawlDB   string            `toml:"gmeetcrawl_db" json:"gmeetcrawl_db"`
-	ExportcrawlDB  string            `toml:"exportcrawl_db" json:"exportcrawl_db"`
-	GraincrawlDB   string            `toml:"graincrawl_db" json:"graincrawl_db"`
-	GranolacrawlDB string            `toml:"granolacrawl_db" json:"granolacrawl_db"`
-	OpenWhispr     OpenWhisprSection `toml:"openwhispr" json:"openwhispr"`
-	GMeet          GMeetSection      `toml:"gmeet" json:"gmeet"`
-	ExportFile     ExportFileSection `toml:"export_file" json:"export_file"`
-	Grain          GrainSection      `toml:"grain" json:"grain"`
-	Granola        GranolaSection    `toml:"granola" json:"granola"`
-	Secrets        SecretsSection    `toml:"secrets" json:"secrets"`
-	Privacy        privacy.Config    `toml:"privacy" json:"privacy"`
-	Calendar       CalendarConfig    `toml:"calendar" json:"calendar"`
-	MCP            MCPConfig         `toml:"mcp" json:"mcp"`
+	Version          int               `toml:"version" json:"version"`
+	DBPath           string            `toml:"db_path" json:"db_path"`
+	ReadsDBPath      string            `toml:"reads_db_path" json:"reads_db_path"`
+	WhispcrawlDB     string            `toml:"whispcrawl_db" json:"whispcrawl_db"`
+	GmeetcrawlDB     string            `toml:"gmeetcrawl_db" json:"gmeetcrawl_db"`
+	ExportcrawlDB    string            `toml:"exportcrawl_db" json:"exportcrawl_db"`
+	GraincrawlDB     string            `toml:"graincrawl_db" json:"graincrawl_db"`
+	GranolacrawlDB   string            `toml:"granolacrawl_db" json:"granolacrawl_db"`
+	FireflyescrawlDB string            `toml:"fireflyescrawl_db" json:"fireflyescrawl_db"`
+	OpenWhispr       OpenWhisprSection `toml:"openwhispr" json:"openwhispr"`
+	GMeet            GMeetSection      `toml:"gmeet" json:"gmeet"`
+	ExportFile       ExportFileSection `toml:"export_file" json:"export_file"`
+	Grain            GrainSection      `toml:"grain" json:"grain"`
+	Granola          GranolaSection    `toml:"granola" json:"granola"`
+	Fireflies        FirefliesSection  `toml:"fireflies" json:"fireflies"`
+	Secrets          SecretsSection    `toml:"secrets" json:"secrets"`
+	Privacy          privacy.Config    `toml:"privacy" json:"privacy"`
+	Calendar         CalendarConfig    `toml:"calendar" json:"calendar"`
+	MCP              MCPConfig         `toml:"mcp" json:"mcp"`
 }
 
 func App() ckconfig.App {
@@ -131,15 +141,20 @@ func Defaults() (Config, string, error) {
 	if err != nil {
 		return Config{}, "", err
 	}
+	firefliesDefaults, _, err := firefliesconfig.Defaults()
+	if err != nil {
+		return Config{}, "", err
+	}
 	cfg := Config{
-		Version:        1,
-		DBPath:         paths.DBPath,
-		ReadsDBPath:    filepath.Join(filepath.Dir(paths.DBPath), "reads.db"),
-		WhispcrawlDB:   whispDefaults.DBPath,
-		GmeetcrawlDB:   gmeetDefaults.DBPath,
-		ExportcrawlDB:  exportDefaults.DBPath,
-		GraincrawlDB:   grainDefaults.DBPath,
-		GranolacrawlDB: granolaDefaults.DBPath,
+		Version:          1,
+		DBPath:           paths.DBPath,
+		ReadsDBPath:      filepath.Join(filepath.Dir(paths.DBPath), "reads.db"),
+		WhispcrawlDB:     whispDefaults.DBPath,
+		GmeetcrawlDB:     gmeetDefaults.DBPath,
+		ExportcrawlDB:    exportDefaults.DBPath,
+		GraincrawlDB:     grainDefaults.DBPath,
+		GranolacrawlDB:   granolaDefaults.DBPath,
+		FireflyescrawlDB: firefliesDefaults.DBPath,
 		OpenWhispr: OpenWhisprSection{
 			SourceDB: whispDefaults.SourceDB,
 			CacheDir: whispDefaults.CacheDir,
@@ -166,6 +181,11 @@ func Defaults() (Config, string, error) {
 			CacheDir:  granolaDefaults.CacheDir,
 			LogDir:    granolaDefaults.LogDir,
 			APIKeyRef: secret.AccountGranolaAPIKey,
+		},
+		Fireflies: FirefliesSection{
+			CacheDir:  firefliesDefaults.CacheDir,
+			LogDir:    firefliesDefaults.LogDir,
+			APIKeyRef: secret.AccountFirefliesAPIKey,
 		},
 		Secrets: SecretsSection{
 			Provider: secret.ProviderKeychain,
@@ -204,6 +224,7 @@ func Load(configPath string) (Config, string, error) {
 	cfg.ExportcrawlDB = ckconfig.ExpandHome(cfg.ExportcrawlDB)
 	cfg.GraincrawlDB = ckconfig.ExpandHome(cfg.GraincrawlDB)
 	cfg.GranolacrawlDB = ckconfig.ExpandHome(cfg.GranolacrawlDB)
+	cfg.FireflyescrawlDB = ckconfig.ExpandHome(cfg.FireflyescrawlDB)
 	cfg.OpenWhispr.SourceDB = ckconfig.ExpandHome(cfg.OpenWhispr.SourceDB)
 	cfg.OpenWhispr.CacheDir = ckconfig.ExpandHome(cfg.OpenWhispr.CacheDir)
 	cfg.OpenWhispr.LogDir = ckconfig.ExpandHome(cfg.OpenWhispr.LogDir)
@@ -218,6 +239,8 @@ func Load(configPath string) (Config, string, error) {
 	cfg.Grain.LogDir = ckconfig.ExpandHome(cfg.Grain.LogDir)
 	cfg.Granola.CacheDir = ckconfig.ExpandHome(cfg.Granola.CacheDir)
 	cfg.Granola.LogDir = ckconfig.ExpandHome(cfg.Granola.LogDir)
+	cfg.Fireflies.CacheDir = ckconfig.ExpandHome(cfg.Fireflies.CacheDir)
+	cfg.Fireflies.LogDir = ckconfig.ExpandHome(cfg.Fireflies.LogDir)
 	cfg.Calendar.FixtureDir = ckconfig.ExpandHome(cfg.Calendar.FixtureDir)
 	cfg.Calendar.OAuthClientPath = ckconfig.ExpandHome(cfg.Calendar.OAuthClientPath)
 	cfg.Calendar.TokenPath = ckconfig.ExpandHome(cfg.Calendar.TokenPath)
@@ -266,6 +289,13 @@ func Load(configPath string) (Config, string, error) {
 		}
 		cfg.GranolacrawlDB = granolaDefaults.DBPath
 	}
+	if cfg.FireflyescrawlDB == "" {
+		firefliesDefaults, _, err := firefliesconfig.Defaults()
+		if err != nil {
+			return Config{}, resolved, err
+		}
+		cfg.FireflyescrawlDB = firefliesDefaults.DBPath
+	}
 	if cfg.Calendar.OAuthClientPath == "" {
 		gmeetDefaults, _, err := gconfig.Defaults()
 		if err != nil {
@@ -290,6 +320,7 @@ func fillSourceSections(cfg Config) Config {
 	exportDefaults, _, _ := econfig.Defaults()
 	grainDefaults, _, _ := grainconfig.Defaults()
 	granolaDefaults, _, _ := granolaconfig.Defaults()
+	firefliesDefaults, _, _ := firefliesconfig.Defaults()
 	if cfg.OpenWhispr.SourceDB == "" {
 		cfg.OpenWhispr.SourceDB = whispDefaults.SourceDB
 	}
@@ -340,6 +371,15 @@ func fillSourceSections(cfg Config) Config {
 	}
 	if strings.TrimSpace(cfg.Granola.APIKeyRef) == "" {
 		cfg.Granola.APIKeyRef = secret.AccountGranolaAPIKey
+	}
+	if cfg.Fireflies.CacheDir == "" {
+		cfg.Fireflies.CacheDir = firefliesDefaults.CacheDir
+	}
+	if cfg.Fireflies.LogDir == "" {
+		cfg.Fireflies.LogDir = firefliesDefaults.LogDir
+	}
+	if strings.TrimSpace(cfg.Fireflies.APIKeyRef) == "" {
+		cfg.Fireflies.APIKeyRef = secret.AccountFirefliesAPIKey
 	}
 	if strings.TrimSpace(cfg.Secrets.Provider) == "" {
 		cfg.Secrets.Provider = secret.ProviderKeychain
@@ -405,6 +445,17 @@ func (c Config) GranolaConfig() granolaconfig.Config {
 	}
 }
 
+func (c Config) FirefliesConfig() firefliesconfig.Config {
+	return firefliesconfig.Config{
+		Version:         c.Version,
+		DBPath:          c.FireflyescrawlDB,
+		CacheDir:        c.Fireflies.CacheDir,
+		LogDir:          c.Fireflies.LogDir,
+		APIKeyRef:       c.Fireflies.APIKeyRef,
+		SecretsProvider: c.Secrets.Provider,
+	}
+}
+
 func (c Config) SecretProvider() (secret.Provider, error) {
 	return secret.NewProvider(secret.Options{
 		Provider:  c.Secrets.Provider,
@@ -441,6 +492,7 @@ func (c ConfigView) GMeetArchiveDB() string      { return c.GmeetcrawlDB }
 func (c ConfigView) ExportFileArchiveDB() string { return c.ExportcrawlDB }
 func (c ConfigView) GrainArchiveDB() string      { return c.GraincrawlDB }
 func (c ConfigView) GranolaArchiveDB() string    { return c.GranolacrawlDB }
+func (c ConfigView) FirefliesArchiveDB() string  { return c.FireflyescrawlDB }
 func (c ConfigView) WhispConfig() wconfig.Config { return Config(c).WhispConfig() }
 func (c ConfigView) GMeetConfig() gconfig.Config { return Config(c).GMeetConfig() }
 func (c ConfigView) ExportFileConfig() econfig.Config {
@@ -451,6 +503,9 @@ func (c ConfigView) GrainConfig() grainconfig.Config {
 }
 func (c ConfigView) GranolaConfig() granolaconfig.Config {
 	return Config(c).GranolaConfig()
+}
+func (c ConfigView) FirefliesConfig() firefliesconfig.Config {
+	return Config(c).FirefliesConfig()
 }
 
 func MarshalPreview(cfg Config) ([]byte, error) {

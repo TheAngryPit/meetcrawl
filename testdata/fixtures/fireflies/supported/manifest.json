@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "transcripts": [
+    {
+      "id": "synthetic-fireflies-001",
+      "title": "Synthetic standup",
+      "date": 1736949600000,
+      "date_string": "2026-01-15T14:00:00Z",
+      "duration_minutes": 30,
+      "transcript_path": "transcripts/standup.json",
+      "calendar_id": "cal-synthetic-fireflies-001"
+    }
+  ]
+}

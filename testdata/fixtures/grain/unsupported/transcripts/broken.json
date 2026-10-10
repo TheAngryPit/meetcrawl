@@ -1,0 +1,8 @@
+[
+  {
+    "start": "not-an-integer",
+    "end": 4000,
+    "speaker": "Speaker Alpha",
+    "text": "Should fail schema validation."
+  }
+]

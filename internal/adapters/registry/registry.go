@@ -6,9 +6,12 @@ import (
 
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/exportfile"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/gmeet"
+	"github.com/TheAngryPit/meetcrawl/internal/adapters/grain"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/openwhispr"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
+	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
+	"github.com/TheAngryPit/meetcrawl/internal/secret"
 	"github.com/TheAngryPit/meetcrawl/internal/source"
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
 )
@@ -29,6 +32,7 @@ type SyncOptions struct {
 type Deps struct {
 	Config         ConfigView
 	CrawlerVersion string
+	Secrets        secret.Provider
 }
 
 type factory func(Deps, SyncOptions) source.Adapter
@@ -133,6 +137,26 @@ func init() {
 				SourceDir:      o.SourceDir,
 				FixtureDir:     o.FixtureDir,
 				CrawlerVersion: d.CrawlerVersion,
+			}
+		},
+	})
+	Register(Entry{
+		Name:  "grain",
+		Kind:  source.KindGrain,
+		Scope: "grain SQLite archive",
+		ArchivePath: func(c ConfigView) string {
+			return c.GrainArchiveDB()
+		},
+		EnsureDirs: func(c ConfigView) error {
+			return grainconfig.EnsureDirs(c.GrainConfig())
+		},
+		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
+			cfg := d.Config.GrainConfig()
+			return grain.Adapter{
+				Config:         cfg,
+				FixtureDir:     o.FixtureDir,
+				CrawlerVersion: d.CrawlerVersion,
+				Secrets:        d.Secrets,
 			}
 		},
 	})

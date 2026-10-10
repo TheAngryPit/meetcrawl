@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "recordings": [
+    {
+      "id": "synthetic-grain-bad",
+      "title": "Broken transcript shape",
+      "start_datetime": "2026-01-15T15:00:00Z",
+      "transcript_path": "transcripts/broken.json"
+    }
+  ]
+}

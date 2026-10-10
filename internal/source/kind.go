@@ -14,6 +14,7 @@ const (
 	KindOpenWhispr  Kind = "openwhispr"
 	KindGMeetGemini Kind = "gmeet-gemini"
 	KindExportFile  Kind = "export-file"
+	KindGrain       Kind = "grain"
 )
 
 func (k Kind) String() string { return string(k) }

@@ -14,6 +14,7 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/index/build"
 	"github.com/TheAngryPit/meetcrawl/internal/index/reads"
 	mconfig "github.com/TheAngryPit/meetcrawl/internal/meetcrawl/config"
+	"github.com/TheAngryPit/meetcrawl/internal/secret"
 	"github.com/TheAngryPit/meetcrawl/internal/source"
 	warchive "github.com/TheAngryPit/meetcrawl/internal/whisp/archive"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -70,8 +71,12 @@ func TestBuiltinAdaptersImplementContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Defaults() = %v", err)
 	}
-	deps := registry.Deps{Config: mconfig.ConfigView(cfg), CrawlerVersion: "test"}
-	for _, name := range []registry.Name{"openwhispr", "gmeet", "export-file"} {
+	deps := registry.Deps{
+		Config:         mconfig.ConfigView(cfg),
+		CrawlerVersion: "test",
+		Secrets:        secret.MapProvider{},
+	}
+	for _, name := range []registry.Name{"openwhispr", "gmeet", "export-file", "grain"} {
 		name := name
 		t.Run(string(name), func(t *testing.T) {
 			adp, err := registry.NewAdapter(name, deps, registry.SyncOptions{})
@@ -114,6 +119,7 @@ func TestSyntheticAdapterIndexAndMCP(t *testing.T) {
 	emptyArchive(t, cfg.WhispcrawlDB)
 	emptyArchive(t, cfg.GmeetcrawlDB)
 	emptyArchive(t, cfg.ExportcrawlDB)
+	emptyArchive(t, cfg.GraincrawlDB)
 	if err := seedSyntheticArchive(t, syntheticDB, testKind, marker); err != nil {
 		t.Fatal(err)
 	}

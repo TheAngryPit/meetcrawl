@@ -1,0 +1,9 @@
+[
+  {
+    "start": 1000,
+    "end": 4000,
+    "speaker": "Speaker Alpha",
+    "text": "Synthetic standup transcript for fixture ingest.",
+    "participant_id": "eeee1111-ff22-gg33-hh44-iiii55555555"
+  }
+]

@@ -20,6 +20,8 @@ func parseArchiveOverrides(args []string) map[registry.Name]string {
 	set("gmeet", "--gmeetcrawl-db")
 	set("export-file", "--export-file-db")
 	set("export-file", "--exportcrawl-db")
+	set("grain", "--grain-db")
+	set("grain", "--graincrawl-db")
 	return out
 }
 

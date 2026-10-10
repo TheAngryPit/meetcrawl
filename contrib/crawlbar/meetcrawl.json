@@ -83,6 +83,18 @@
             "json": true,
             "mutates": true
         },
+        "sync-grain": {
+            "title": "Sync grain",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "grain"
+            ],
+            "json": true,
+            "mutates": true
+        },
         "sync-openwhispr": {
             "title": "Sync openwhispr",
             "argv": [
@@ -111,6 +123,7 @@
             "openwhispr SQLite archive",
             "gmeet-gemini SQLite archive",
             "export-file SQLite archive",
+            "grain SQLite archive",
             "meet index SQLite archive"
         ]
     }

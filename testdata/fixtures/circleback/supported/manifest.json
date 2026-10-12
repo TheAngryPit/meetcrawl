@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "meetings": [
+    {
+      "id": "WRweb12iCBimU6Vo8cD7z",
+      "title": "Synthetic Circleback standup",
+      "started_at": "2025-11-05T10:45:48Z",
+      "duration": 1800,
+      "transcript_path": "transcripts/standup.json"
+    }
+  ]
+}

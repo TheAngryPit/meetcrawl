@@ -23,6 +23,7 @@ EXPORT_UNSUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/export-file/unsupported"
 GRAIN_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/grain/supported"
 GRANOLA_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/granola/supported"
 FIREFLIES_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/fireflies/supported"
+FATHOM_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/fathom/supported"
 CALENDAR_FIX="${REPO_ROOT}/testdata/fixtures/calendar/synthetic"
 
 mkdir -p "${PROOF_DIR}"
@@ -147,7 +148,14 @@ run_sync_ingest() {
   local fireflies_artifacts
   fireflies_artifacts="$(json_get result.artifacts "${fireflies_out}")"
   [[ "${fireflies_artifacts}" == "1" ]] || fail "fireflies artifacts=${fireflies_artifacts} want 1"
-  log "sync ingest ok (3 + 3 + 4 + 1 + 1 + 1 artifacts)"
+
+  local fathom_out
+  fathom_out="$("${BINDIR}/meet" --json sync --source fathom --fixture "${FATHOM_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/fathom-sync.log")"
+  echo "${fathom_out}" >>"${PROOF_DIR}/fathom-sync.log"
+  local fathom_artifacts
+  fathom_artifacts="$(json_get result.artifacts "${fathom_out}")"
+  [[ "${fathom_artifacts}" == "1" ]] || fail "fathom artifacts=${fathom_artifacts} want 1"
+  log "sync ingest ok (3 + 3 + 4 + 1 + 1 + 1 + 1 artifacts)"
 }
 
 patch_meetcrawl_privacy() {

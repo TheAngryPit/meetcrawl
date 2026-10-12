@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "meetings": [
+    {
+      "recording_id": 987654321,
+      "title": "Synthetic standup",
+      "created_at": "2025-01-15T14:30:00Z",
+      "recording_start_time": "2025-01-15T14:00:00Z",
+      "recording_end_time": "2025-01-15T14:30:00Z",
+      "transcript_path": "transcripts/standup.json"
+    }
+  ]
+}

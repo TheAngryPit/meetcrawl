@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "meetings": [
+    {
+      "id": "rec_pocket_fixture_standup_001",
+      "title": "Synthetic Pocket standup",
+      "started_at": "2025-11-05T10:45:48Z",
+      "duration": 1800,
+      "transcript_path": "transcripts/standup.json"
+    }
+  ]
+}

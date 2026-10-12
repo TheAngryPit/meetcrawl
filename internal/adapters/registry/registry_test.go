@@ -76,7 +76,7 @@ func TestBuiltinAdaptersImplementContract(t *testing.T) {
 		CrawlerVersion: "test",
 		Secrets:        secret.MapProvider{},
 	}
-	for _, name := range []registry.Name{"openwhispr", "gmeet", "export-file", "grain", "granola", "fireflies", "fathom", "krisp", "circleback", "tldv"} {
+	for _, name := range []registry.Name{"openwhispr", "gmeet", "export-file", "grain", "granola", "fireflies", "fathom", "krisp", "circleback", "tldv", "pocket"} {
 		name := name
 		t.Run(string(name), func(t *testing.T) {
 			adp, err := registry.NewAdapter(name, deps, registry.SyncOptions{})
@@ -126,6 +126,7 @@ func TestSyntheticAdapterIndexAndMCP(t *testing.T) {
 	emptyArchive(t, cfg.KrispcrawlDB)
 	emptyArchive(t, cfg.CirclebackcrawlDB)
 	emptyArchive(t, cfg.TldvcrawlDB)
+	emptyArchive(t, cfg.PocketcrawlDB)
 	if err := seedSyntheticArchive(t, syntheticDB, testKind, marker); err != nil {
 		t.Fatal(err)
 	}

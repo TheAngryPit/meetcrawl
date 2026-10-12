@@ -13,6 +13,7 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/granola"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/krisp"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/openwhispr"
+	"github.com/TheAngryPit/meetcrawl/internal/adapters/pocket"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/tldv"
 	circlebackconfig "github.com/TheAngryPit/meetcrawl/internal/circleback/config"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
@@ -22,6 +23,7 @@ import (
 	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
 	granolaconfig "github.com/TheAngryPit/meetcrawl/internal/granola/config"
 	krispconfig "github.com/TheAngryPit/meetcrawl/internal/krisp/config"
+	pocketconfig "github.com/TheAngryPit/meetcrawl/internal/pocket/config"
 	"github.com/TheAngryPit/meetcrawl/internal/secret"
 	"github.com/TheAngryPit/meetcrawl/internal/source"
 	tldvconfig "github.com/TheAngryPit/meetcrawl/internal/tldv/config"
@@ -285,6 +287,26 @@ func init() {
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.TldvConfig()
 			return tldv.Adapter{
+				Config:         cfg,
+				FixtureDir:     o.FixtureDir,
+				CrawlerVersion: d.CrawlerVersion,
+				Secrets:        d.Secrets,
+			}
+		},
+	})
+	Register(Entry{
+		Name:  "pocket",
+		Kind:  source.KindPocket,
+		Scope: "pocket SQLite archive",
+		ArchivePath: func(c ConfigView) string {
+			return c.PocketArchiveDB()
+		},
+		EnsureDirs: func(c ConfigView) error {
+			return pocketconfig.EnsureDirs(c.PocketConfig())
+		},
+		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
+			cfg := d.Config.PocketConfig()
+			return pocket.Adapter{
 				Config:         cfg,
 				FixtureDir:     o.FixtureDir,
 				CrawlerVersion: d.CrawlerVersion,

@@ -21,6 +21,7 @@ const (
 	KindKrisp       Kind = "krisp"
 	KindCircleback  Kind = "circleback"
 	KindTldv        Kind = "tldv"
+	KindPocket      Kind = "pocket"
 )
 
 func (k Kind) String() string { return string(k) }

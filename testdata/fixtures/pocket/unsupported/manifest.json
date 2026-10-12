@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "meetings": [
+    {
+      "id": "pocket-unsupported-001",
+      "title": "Broken transcript shape",
+      "started_at": "2025-11-05T10:45:48Z",
+      "duration": 60,
+      "transcript_path": "transcripts/broken.json"
+    }
+  ]
+}

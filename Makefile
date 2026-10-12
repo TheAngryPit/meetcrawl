@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help test test-race vet tidy tidy-check fmt check
+.PHONY: help test test-race vet tidy tidy-check fmt verify-drive-test check
 
 help:
 	@printf '%s\n' \
@@ -34,4 +34,7 @@ fmt:
 	unformatted="$$(gofmt -l .)"; \
 	if [ -n "$$unformatted" ]; then echo "$$unformatted"; exit 1; fi
 
-check: tidy-check fmt vet test test-race
+verify-drive-test:
+	bash .cursor/skills/verify-meetcrawl/bin/test_drive_pipeline.sh
+
+check: tidy-check fmt vet test test-race verify-drive-test

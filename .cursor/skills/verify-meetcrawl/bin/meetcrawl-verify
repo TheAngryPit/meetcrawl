@@ -133,16 +133,20 @@ cmd_drive() {
   local code=0
   {
     log "drive feature=$feature"
+    local drive_code=0
     case "$feature" in
-      required-docs-and-ci) drive_required_docs_and_ci ;;
-      secrets-and-tracked-forbidden) drive_secrets_and_tracked_forbidden ;;
-      spec-integrity) drive_spec_integrity ;;
-      phase1-headless-proof) drive_phase1_headless_proof ;;
+      required-docs-and-ci) drive_required_docs_and_ci || drive_code=$? ;;
+      secrets-and-tracked-forbidden) drive_secrets_and_tracked_forbidden || drive_code=$? ;;
+      spec-integrity) drive_spec_integrity || drive_code=$? ;;
+      phase1-headless-proof) drive_phase1_headless_proof || drive_code=$? ;;
       *)
         log "unknown feature: $feature"
-        exit 1
+        drive_code=1
         ;;
     esac
+    if [[ "$drive_code" -ne 0 ]]; then
+      exit "$drive_code"
+    fi
     verify_spec_unchanged || exit 1
     log "drive ok feature=$feature"
   } | tee "$EVIDENCE_DIR/drive.log" || code=$?

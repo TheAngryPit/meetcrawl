@@ -9,6 +9,7 @@ import (
 	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
 	granolaconfig "github.com/TheAngryPit/meetcrawl/internal/granola/config"
 	krispconfig "github.com/TheAngryPit/meetcrawl/internal/krisp/config"
+	tldvconfig "github.com/TheAngryPit/meetcrawl/internal/tldv/config"
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
 )
 
@@ -23,6 +24,7 @@ type ConfigView interface {
 	FathomArchiveDB() string
 	KrispArchiveDB() string
 	CirclebackArchiveDB() string
+	TldvArchiveDB() string
 	WhispConfig() wconfig.Config
 	GMeetConfig() gconfig.Config
 	ExportFileConfig() econfig.Config
@@ -32,4 +34,5 @@ type ConfigView interface {
 	FathomConfig() fathomconfig.Config
 	KrispConfig() krispconfig.Config
 	CirclebackConfig() circlebackconfig.Config
+	TldvConfig() tldvconfig.Config
 }

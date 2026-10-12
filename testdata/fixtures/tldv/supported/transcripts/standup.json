@@ -1,0 +1,18 @@
+{
+  "id": "tldv-transcript-standup-001",
+  "meetingId": "653663ac7c8dbd00130f11d9",
+  "data": [
+    {
+      "speaker": "Alice Chen",
+      "text": "Morning standup, quick updates only.",
+      "startTime": 1.2,
+      "endTime": 4.0
+    },
+    {
+      "speaker": "Bob Lee",
+      "text": "Indexer rebuild finished on fixtures.",
+      "startTime": 4.8,
+      "endTime": 8.0
+    }
+  ]
+}

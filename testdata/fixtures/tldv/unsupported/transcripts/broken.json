@@ -1,0 +1,12 @@
+{
+  "id": "broken",
+  "meetingId": "tldv-unsupported-001",
+  "data": [
+    {
+      "speaker": "Alice Chen",
+      "text": "",
+      "startTime": 0,
+      "endTime": 1
+    }
+  ]
+}

@@ -20,6 +20,7 @@ const (
 	KindFathom      Kind = "fathom"
 	KindKrisp       Kind = "krisp"
 	KindCircleback  Kind = "circleback"
+	KindTldv        Kind = "tldv"
 )
 
 func (k Kind) String() string { return string(k) }

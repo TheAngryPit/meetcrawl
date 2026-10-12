@@ -2,7 +2,7 @@
 
 Status: approved by the owner on 2026-10-08. Repo: `TheAngryPit/meetcrawl`. License: MIT.
 
-**Source-agnostic by design.** meetcrawl is meant to archive meeting transcripts from any tool that records them (OpenWhispr, Google Meet/Gemini, Grain, Granola, Zoom, Teams, Otter, Fireflies, plain exported files, and so on). Each source is a separate adapter behind one shared contract, and the index never depends on a specific provider. Phase 1 ships three core adapters (openwhispr, gmeet-gemini, export-file); **Grain is a phase adapter** registered alongside them. More sources register in `internal/adapters/registry` without changing the index or MCP surface.
+**Source-agnostic by design.** meetcrawl is meant to archive meeting transcripts from any tool that records them (OpenWhispr, Google Meet/Gemini, Grain, Granola, Zoom, Teams, Otter, Fireflies, plain exported files, and so on). Each source is a separate adapter behind one shared contract, and the index never depends on a specific provider. Phase 1 ships three core adapters (openwhispr, gmeet-gemini, export-file); **Grain, Granola, and Fireflies are phase adapters** registered alongside them. More sources register in `internal/adapters/registry` without changing the index or MCP surface.
 
 ## 1. What it is
 A local-first, read-only archive of your meetings that any agent can query. It follows the crawl-app pattern:
@@ -79,7 +79,7 @@ Snapshot, backup, mirror (Git) and embed/vector are **not used in phase 1**. Pro
 - Live sync uses Granola public REST API (`https://public-api.granola.ai`) with Bearer API key auth, `GET /v1/notes` (cursor pagination), `GET /v1/notes/{note_id}` for `calendar_event.calendar_event_id` and scheduled times when present, and cursor-paginated `GET /v1/notes/{note_id}/transcript` (items with `speaker`, `text`, `start_time`, `end_time`). Transcripts only; no summaries, private notes, folders, or local Granola app database in this adapter.
 - API key via shared `internal/secret` provider: macOS keychain account (default `[granola] api_key_ref = "granola-api-key"` under service `meetcrawl`) or 1Password `op read` on an `op://…` reference when `[secrets] provider = "op"`. Missing or invalid secret → sync fails closed with no archive artifacts; secrets never logged.
 - `calendar_event.calendar_event_id` is stored on the artifact when Granola returns it; core calendar enrichment unchanged. No invented calendar identifiers.
-- `meet sync --source granola --fixture <dir>` replays synthetic note/transcript fixtures (`testdata/fixtures/granola/`); CI and proof never call the live API.
+- `meet sync --source granola --fixture <dir>` replays synthetic list/transcript fixtures (`testdata/fixtures/granola/`); CI and proof never call the live API.
 
 <!-- SPEC-FLAG: fireflies-graphql-phase-adapter-2026-10-10 -->
 **fireflies adapter (`internal/adapters/fireflies`): Fireflies meeting transcripts (phase adapter, GraphQL only).**
@@ -87,6 +87,8 @@ Snapshot, backup, mirror (Git) and embed/vector are **not used in phase 1**. Pro
 - API key via shared `internal/secret` provider: macOS keychain account (default `[fireflies] api_key_ref = "fireflies-api-key"` under service `meetcrawl`) or 1Password `op read` on an `op://…` reference when `[secrets] provider = "op"`. Missing or invalid secret → sync fails closed with no archive artifacts; secrets never logged.
 - `calendar_id` is stored on the artifact when Fireflies returns it; core calendar enrichment unchanged. No invented calendar identifiers.
 - `meet sync --source fireflies --fixture <dir>` replays synthetic list/transcript fixtures (`testdata/fixtures/fireflies/`); CI and proof never call the live API.
+<!-- SPEC-FLAG: fireflies-empty-account-fails-closed-2026-10-12 -->
+- Live or fixture sync with zero transcripts fails closed (`no fireflies transcripts returned`), same as Grain and Granola phase adapters when the remote list is empty. A successful empty sync (zero artifacts, exit OK) is not specified today.
 
 ## 6. Meetings index (`meet index`): thin, rebuildable, read-only over source archives
 Opens each source archive DB with `store.OpenReadOnly` and writes only `meetcrawl.db`. Deleting it and re-running `index` reproduces the same content (an ordered row dump hashes the same).

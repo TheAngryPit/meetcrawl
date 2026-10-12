@@ -174,7 +174,7 @@ run_index_checks() {
   echo "${idx_out}" >>"${PROOF_DIR}/index.log"
   local meetings
   meetings="$(json_get result.meetings "${idx_out}")"
-  [[ "${meetings}" == "2" ]] || fail "index meetings=${meetings} want 2"
+  [[ "${meetings}" == "3" ]] || fail "index meetings=${meetings} want 3"
   [[ -f "${INDEX_DB}" ]] || fail "index db missing at ${INDEX_DB}"
 
   local dedup_fidelity adhoc_count
@@ -239,7 +239,7 @@ PY
   echo "${status_out}" >>"${PROOF_DIR}/status.log"
   local status_meetings
   status_meetings="$(json_get result.meetings "${status_out}")"
-  [[ "${status_meetings}" == "2" ]] || fail "status meetings=${status_meetings} want 2"
+  [[ "${status_meetings}" == "3" ]] || fail "status meetings=${status_meetings} want 3"
   log "index dedup, pt-PT search, and status ok"
 }
 

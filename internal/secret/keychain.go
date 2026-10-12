@@ -25,6 +25,8 @@ const AccountCirclebackAPIKey = "circleback-api-key"
 
 const AccountTldvAPIKey = "tldv-api-key"
 
+const AccountPocketAPIKey = "pocket-api-key"
+
 type KeychainBackend interface {
 	Get(service, account string) (string, error)
 }

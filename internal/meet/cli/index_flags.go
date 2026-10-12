@@ -34,6 +34,8 @@ func parseArchiveOverrides(args []string) map[registry.Name]string {
 	set("circleback", "--circlebackcrawl-db")
 	set("tldv", "--tldv-db")
 	set("tldv", "--tldvcrawl-db")
+	set("pocket", "--pocket-db")
+	set("pocket", "--pocketcrawl-db")
 	return out
 }
 

@@ -18,6 +18,7 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/index/privacy"
 	krispconfig "github.com/TheAngryPit/meetcrawl/internal/krisp/config"
 	"github.com/TheAngryPit/meetcrawl/internal/secret"
+	tldvconfig "github.com/TheAngryPit/meetcrawl/internal/tldv/config"
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
 	ckconfig "github.com/openclaw/crawlkit/config"
 	"github.com/pelletier/go-toml/v2"
@@ -110,6 +111,13 @@ type CirclebackSection struct {
 	APIKeyRef string `toml:"api_key_ref,omitempty" json:"api_key_ref,omitempty"`
 }
 
+// TldvSection holds tl;dv REST API ingest settings; archive path stays tldvcrawl_db.
+type TldvSection struct {
+	CacheDir  string `toml:"cache_dir,omitempty" json:"cache_dir,omitempty"`
+	LogDir    string `toml:"log_dir,omitempty" json:"log_dir,omitempty"`
+	APIKeyRef string `toml:"api_key_ref,omitempty" json:"api_key_ref,omitempty"`
+}
+
 type Config struct {
 	Version           int               `toml:"version" json:"version"`
 	DBPath            string            `toml:"db_path" json:"db_path"`
@@ -123,6 +131,7 @@ type Config struct {
 	FathomcrawlDB     string            `toml:"fathomcrawl_db" json:"fathomcrawl_db"`
 	KrispcrawlDB      string            `toml:"krispcrawl_db" json:"krispcrawl_db"`
 	CirclebackcrawlDB string            `toml:"circlebackcrawl_db" json:"circlebackcrawl_db"`
+	TldvcrawlDB       string            `toml:"tldvcrawl_db" json:"tldvcrawl_db"`
 	OpenWhispr        OpenWhisprSection `toml:"openwhispr" json:"openwhispr"`
 	GMeet             GMeetSection      `toml:"gmeet" json:"gmeet"`
 	ExportFile        ExportFileSection `toml:"export_file" json:"export_file"`
@@ -132,6 +141,7 @@ type Config struct {
 	Fathom            FathomSection     `toml:"fathom" json:"fathom"`
 	Krisp             KrispSection      `toml:"krisp" json:"krisp"`
 	Circleback        CirclebackSection `toml:"circleback" json:"circleback"`
+	Tldv              TldvSection       `toml:"tldv" json:"tldv"`
 	Secrets           SecretsSection    `toml:"secrets" json:"secrets"`
 	Privacy           privacy.Config    `toml:"privacy" json:"privacy"`
 	Calendar          CalendarConfig    `toml:"calendar" json:"calendar"`
@@ -187,6 +197,10 @@ func Defaults() (Config, string, error) {
 	if err != nil {
 		return Config{}, "", err
 	}
+	tldvDefaults, _, err := tldvconfig.Defaults()
+	if err != nil {
+		return Config{}, "", err
+	}
 	cfg := Config{
 		Version:           1,
 		DBPath:            paths.DBPath,
@@ -200,6 +214,7 @@ func Defaults() (Config, string, error) {
 		FathomcrawlDB:     fathomDefaults.DBPath,
 		KrispcrawlDB:      krispDefaults.DBPath,
 		CirclebackcrawlDB: circlebackDefaults.DBPath,
+		TldvcrawlDB:       tldvDefaults.DBPath,
 		OpenWhispr: OpenWhisprSection{
 			SourceDB: whispDefaults.SourceDB,
 			CacheDir: whispDefaults.CacheDir,
@@ -247,6 +262,11 @@ func Defaults() (Config, string, error) {
 			LogDir:    circlebackDefaults.LogDir,
 			APIKeyRef: secret.AccountCirclebackAPIKey,
 		},
+		Tldv: TldvSection{
+			CacheDir:  tldvDefaults.CacheDir,
+			LogDir:    tldvDefaults.LogDir,
+			APIKeyRef: secret.AccountTldvAPIKey,
+		},
 		Secrets: SecretsSection{
 			Provider: secret.ProviderKeychain,
 		},
@@ -288,6 +308,7 @@ func Load(configPath string) (Config, string, error) {
 	cfg.FathomcrawlDB = ckconfig.ExpandHome(cfg.FathomcrawlDB)
 	cfg.KrispcrawlDB = ckconfig.ExpandHome(cfg.KrispcrawlDB)
 	cfg.CirclebackcrawlDB = ckconfig.ExpandHome(cfg.CirclebackcrawlDB)
+	cfg.TldvcrawlDB = ckconfig.ExpandHome(cfg.TldvcrawlDB)
 	cfg.OpenWhispr.SourceDB = ckconfig.ExpandHome(cfg.OpenWhispr.SourceDB)
 	cfg.OpenWhispr.CacheDir = ckconfig.ExpandHome(cfg.OpenWhispr.CacheDir)
 	cfg.OpenWhispr.LogDir = ckconfig.ExpandHome(cfg.OpenWhispr.LogDir)
@@ -310,6 +331,8 @@ func Load(configPath string) (Config, string, error) {
 	cfg.Krisp.LogDir = ckconfig.ExpandHome(cfg.Krisp.LogDir)
 	cfg.Circleback.CacheDir = ckconfig.ExpandHome(cfg.Circleback.CacheDir)
 	cfg.Circleback.LogDir = ckconfig.ExpandHome(cfg.Circleback.LogDir)
+	cfg.Tldv.CacheDir = ckconfig.ExpandHome(cfg.Tldv.CacheDir)
+	cfg.Tldv.LogDir = ckconfig.ExpandHome(cfg.Tldv.LogDir)
 	cfg.Calendar.FixtureDir = ckconfig.ExpandHome(cfg.Calendar.FixtureDir)
 	cfg.Calendar.OAuthClientPath = ckconfig.ExpandHome(cfg.Calendar.OAuthClientPath)
 	cfg.Calendar.TokenPath = ckconfig.ExpandHome(cfg.Calendar.TokenPath)
@@ -386,6 +409,13 @@ func Load(configPath string) (Config, string, error) {
 		}
 		cfg.CirclebackcrawlDB = circlebackDefaults.DBPath
 	}
+	if cfg.TldvcrawlDB == "" {
+		tldvDefaults, _, err := tldvconfig.Defaults()
+		if err != nil {
+			return Config{}, resolved, err
+		}
+		cfg.TldvcrawlDB = tldvDefaults.DBPath
+	}
 	if cfg.Calendar.OAuthClientPath == "" {
 		gmeetDefaults, _, err := gconfig.Defaults()
 		if err != nil {
@@ -414,6 +444,7 @@ func fillSourceSections(cfg Config) Config {
 	fathomDefaults, _, _ := fathomconfig.Defaults()
 	krispDefaults, _, _ := krispconfig.Defaults()
 	circlebackDefaults, _, _ := circlebackconfig.Defaults()
+	tldvDefaults, _, _ := tldvconfig.Defaults()
 	if cfg.OpenWhispr.SourceDB == "" {
 		cfg.OpenWhispr.SourceDB = whispDefaults.SourceDB
 	}
@@ -500,6 +531,15 @@ func fillSourceSections(cfg Config) Config {
 	}
 	if strings.TrimSpace(cfg.Circleback.APIKeyRef) == "" {
 		cfg.Circleback.APIKeyRef = secret.AccountCirclebackAPIKey
+	}
+	if cfg.Tldv.CacheDir == "" {
+		cfg.Tldv.CacheDir = tldvDefaults.CacheDir
+	}
+	if cfg.Tldv.LogDir == "" {
+		cfg.Tldv.LogDir = tldvDefaults.LogDir
+	}
+	if strings.TrimSpace(cfg.Tldv.APIKeyRef) == "" {
+		cfg.Tldv.APIKeyRef = secret.AccountTldvAPIKey
 	}
 	if strings.TrimSpace(cfg.Secrets.Provider) == "" {
 		cfg.Secrets.Provider = secret.ProviderKeychain
@@ -609,6 +649,17 @@ func (c Config) CirclebackConfig() circlebackconfig.Config {
 	}
 }
 
+func (c Config) TldvConfig() tldvconfig.Config {
+	return tldvconfig.Config{
+		Version:         c.Version,
+		DBPath:          c.TldvcrawlDB,
+		CacheDir:        c.Tldv.CacheDir,
+		LogDir:          c.Tldv.LogDir,
+		APIKeyRef:       c.Tldv.APIKeyRef,
+		SecretsProvider: c.Secrets.Provider,
+	}
+}
+
 func (c Config) SecretProvider() (secret.Provider, error) {
 	return secret.NewProvider(secret.Options{
 		Provider:  c.Secrets.Provider,
@@ -649,6 +700,7 @@ func (c ConfigView) FirefliesArchiveDB() string  { return c.FireflyescrawlDB }
 func (c ConfigView) FathomArchiveDB() string     { return c.FathomcrawlDB }
 func (c ConfigView) KrispArchiveDB() string      { return c.KrispcrawlDB }
 func (c ConfigView) CirclebackArchiveDB() string { return c.CirclebackcrawlDB }
+func (c ConfigView) TldvArchiveDB() string       { return c.TldvcrawlDB }
 func (c ConfigView) WhispConfig() wconfig.Config { return Config(c).WhispConfig() }
 func (c ConfigView) GMeetConfig() gconfig.Config { return Config(c).GMeetConfig() }
 func (c ConfigView) ExportFileConfig() econfig.Config {
@@ -671,6 +723,9 @@ func (c ConfigView) KrispConfig() krispconfig.Config {
 }
 func (c ConfigView) CirclebackConfig() circlebackconfig.Config {
 	return Config(c).CirclebackConfig()
+}
+func (c ConfigView) TldvConfig() tldvconfig.Config {
+	return Config(c).TldvConfig()
 }
 
 func MarshalPreview(cfg Config) ([]byte, error) {

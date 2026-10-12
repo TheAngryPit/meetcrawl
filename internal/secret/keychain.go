@@ -23,6 +23,8 @@ const AccountKrispAPIKey = "krisp-api-key"
 
 const AccountCirclebackAPIKey = "circleback-api-key"
 
+const AccountTldvAPIKey = "tldv-api-key"
+
 type KeychainBackend interface {
 	Get(service, account string) (string, error)
 }

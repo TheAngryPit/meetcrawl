@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "meetings": [
+    {
+      "id": "tldv-unsupported-001",
+      "title": "Broken transcript fixture",
+      "started_at": "2025-11-05T11:00:00Z",
+      "transcript_path": "transcripts/broken.json"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/granola"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/krisp"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/openwhispr"
+	"github.com/TheAngryPit/meetcrawl/internal/adapters/tldv"
 	circlebackconfig "github.com/TheAngryPit/meetcrawl/internal/circleback/config"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	fathomconfig "github.com/TheAngryPit/meetcrawl/internal/fathom/config"
@@ -23,6 +24,7 @@ import (
 	krispconfig "github.com/TheAngryPit/meetcrawl/internal/krisp/config"
 	"github.com/TheAngryPit/meetcrawl/internal/secret"
 	"github.com/TheAngryPit/meetcrawl/internal/source"
+	tldvconfig "github.com/TheAngryPit/meetcrawl/internal/tldv/config"
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
 )
 
@@ -263,6 +265,26 @@ func init() {
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.CirclebackConfig()
 			return circleback.Adapter{
+				Config:         cfg,
+				FixtureDir:     o.FixtureDir,
+				CrawlerVersion: d.CrawlerVersion,
+				Secrets:        d.Secrets,
+			}
+		},
+	})
+	Register(Entry{
+		Name:  "tldv",
+		Kind:  source.KindTldv,
+		Scope: "tldv SQLite archive",
+		ArchivePath: func(c ConfigView) string {
+			return c.TldvArchiveDB()
+		},
+		EnsureDirs: func(c ConfigView) error {
+			return tldvconfig.EnsureDirs(c.TldvConfig())
+		},
+		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
+			cfg := d.Config.TldvConfig()
+			return tldv.Adapter{
 				Config:         cfg,
 				FixtureDir:     o.FixtureDir,
 				CrawlerVersion: d.CrawlerVersion,

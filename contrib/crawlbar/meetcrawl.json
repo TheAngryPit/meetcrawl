@@ -166,6 +166,18 @@
             ],
             "json": true,
             "mutates": true
+        },
+        "sync-tldv": {
+            "title": "Sync tldv",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "tldv"
+            ],
+            "json": true,
+            "mutates": true
         }
     },
     "capabilities": [
@@ -189,6 +201,7 @@
             "fathom SQLite archive",
             "krisp SQLite archive",
             "circleback SQLite archive",
+            "tldv SQLite archive",
             "meet index SQLite archive"
         ]
     }

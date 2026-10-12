@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "meetings": [
+    {
+      "id": "653663ac7c8dbd00130f11d9",
+      "title": "Synthetic tl;dv standup",
+      "started_at": "2025-11-05T10:45:48Z",
+      "duration": 1800,
+      "transcript_path": "transcripts/standup.json"
+    }
+  ]
+}

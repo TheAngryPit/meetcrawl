@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "meetings": [
+    {
+      "id": "broken-meeting-001",
+      "title": "Broken transcript",
+      "started_at": "2025-11-05T10:45:48Z",
+      "transcript_path": "transcripts/broken.json"
+    }
+  ]
+}

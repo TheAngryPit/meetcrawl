@@ -1,0 +1,12 @@
+[
+  {
+    "speaker": "Alice Chen",
+    "text": "Morning standup, quick updates only.",
+    "timestamp": 1.2
+  },
+  {
+    "speaker": "Bob Lee",
+    "text": "Indexer rebuild finished on fixtures.",
+    "timestamp": 4.8
+  }
+]

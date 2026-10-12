@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/registry"
+	circlebackconfig "github.com/TheAngryPit/meetcrawl/internal/circleback/config"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	fathomconfig "github.com/TheAngryPit/meetcrawl/internal/fathom/config"
 	firefliesconfig "github.com/TheAngryPit/meetcrawl/internal/fireflies/config"
@@ -102,30 +103,39 @@ type KrispSection struct {
 	APIKeyRef string `toml:"api_key_ref,omitempty" json:"api_key_ref,omitempty"`
 }
 
+// CirclebackSection holds Circleback REST API ingest settings; archive path stays circlebackcrawl_db.
+type CirclebackSection struct {
+	CacheDir  string `toml:"cache_dir,omitempty" json:"cache_dir,omitempty"`
+	LogDir    string `toml:"log_dir,omitempty" json:"log_dir,omitempty"`
+	APIKeyRef string `toml:"api_key_ref,omitempty" json:"api_key_ref,omitempty"`
+}
+
 type Config struct {
-	Version          int               `toml:"version" json:"version"`
-	DBPath           string            `toml:"db_path" json:"db_path"`
-	ReadsDBPath      string            `toml:"reads_db_path" json:"reads_db_path"`
-	WhispcrawlDB     string            `toml:"whispcrawl_db" json:"whispcrawl_db"`
-	GmeetcrawlDB     string            `toml:"gmeetcrawl_db" json:"gmeetcrawl_db"`
-	ExportcrawlDB    string            `toml:"exportcrawl_db" json:"exportcrawl_db"`
-	GraincrawlDB     string            `toml:"graincrawl_db" json:"graincrawl_db"`
-	GranolacrawlDB   string            `toml:"granolacrawl_db" json:"granolacrawl_db"`
-	FireflyescrawlDB string            `toml:"fireflyescrawl_db" json:"fireflyescrawl_db"`
-	FathomcrawlDB    string            `toml:"fathomcrawl_db" json:"fathomcrawl_db"`
-	KrispcrawlDB     string            `toml:"krispcrawl_db" json:"krispcrawl_db"`
-	OpenWhispr       OpenWhisprSection `toml:"openwhispr" json:"openwhispr"`
-	GMeet            GMeetSection      `toml:"gmeet" json:"gmeet"`
-	ExportFile       ExportFileSection `toml:"export_file" json:"export_file"`
-	Grain            GrainSection      `toml:"grain" json:"grain"`
-	Granola          GranolaSection    `toml:"granola" json:"granola"`
-	Fireflies        FirefliesSection  `toml:"fireflies" json:"fireflies"`
-	Fathom           FathomSection     `toml:"fathom" json:"fathom"`
-	Krisp            KrispSection      `toml:"krisp" json:"krisp"`
-	Secrets          SecretsSection    `toml:"secrets" json:"secrets"`
-	Privacy          privacy.Config    `toml:"privacy" json:"privacy"`
-	Calendar         CalendarConfig    `toml:"calendar" json:"calendar"`
-	MCP              MCPConfig         `toml:"mcp" json:"mcp"`
+	Version           int               `toml:"version" json:"version"`
+	DBPath            string            `toml:"db_path" json:"db_path"`
+	ReadsDBPath       string            `toml:"reads_db_path" json:"reads_db_path"`
+	WhispcrawlDB      string            `toml:"whispcrawl_db" json:"whispcrawl_db"`
+	GmeetcrawlDB      string            `toml:"gmeetcrawl_db" json:"gmeetcrawl_db"`
+	ExportcrawlDB     string            `toml:"exportcrawl_db" json:"exportcrawl_db"`
+	GraincrawlDB      string            `toml:"graincrawl_db" json:"graincrawl_db"`
+	GranolacrawlDB    string            `toml:"granolacrawl_db" json:"granolacrawl_db"`
+	FireflyescrawlDB  string            `toml:"fireflyescrawl_db" json:"fireflyescrawl_db"`
+	FathomcrawlDB     string            `toml:"fathomcrawl_db" json:"fathomcrawl_db"`
+	KrispcrawlDB      string            `toml:"krispcrawl_db" json:"krispcrawl_db"`
+	CirclebackcrawlDB string            `toml:"circlebackcrawl_db" json:"circlebackcrawl_db"`
+	OpenWhispr        OpenWhisprSection `toml:"openwhispr" json:"openwhispr"`
+	GMeet             GMeetSection      `toml:"gmeet" json:"gmeet"`
+	ExportFile        ExportFileSection `toml:"export_file" json:"export_file"`
+	Grain             GrainSection      `toml:"grain" json:"grain"`
+	Granola           GranolaSection    `toml:"granola" json:"granola"`
+	Fireflies         FirefliesSection  `toml:"fireflies" json:"fireflies"`
+	Fathom            FathomSection     `toml:"fathom" json:"fathom"`
+	Krisp             KrispSection      `toml:"krisp" json:"krisp"`
+	Circleback        CirclebackSection `toml:"circleback" json:"circleback"`
+	Secrets           SecretsSection    `toml:"secrets" json:"secrets"`
+	Privacy           privacy.Config    `toml:"privacy" json:"privacy"`
+	Calendar          CalendarConfig    `toml:"calendar" json:"calendar"`
+	MCP               MCPConfig         `toml:"mcp" json:"mcp"`
 }
 
 func App() ckconfig.App {
@@ -173,18 +183,23 @@ func Defaults() (Config, string, error) {
 	if err != nil {
 		return Config{}, "", err
 	}
+	circlebackDefaults, _, err := circlebackconfig.Defaults()
+	if err != nil {
+		return Config{}, "", err
+	}
 	cfg := Config{
-		Version:          1,
-		DBPath:           paths.DBPath,
-		ReadsDBPath:      filepath.Join(filepath.Dir(paths.DBPath), "reads.db"),
-		WhispcrawlDB:     whispDefaults.DBPath,
-		GmeetcrawlDB:     gmeetDefaults.DBPath,
-		ExportcrawlDB:    exportDefaults.DBPath,
-		GraincrawlDB:     grainDefaults.DBPath,
-		GranolacrawlDB:   granolaDefaults.DBPath,
-		FireflyescrawlDB: firefliesDefaults.DBPath,
-		FathomcrawlDB:    fathomDefaults.DBPath,
-		KrispcrawlDB:     krispDefaults.DBPath,
+		Version:           1,
+		DBPath:            paths.DBPath,
+		ReadsDBPath:       filepath.Join(filepath.Dir(paths.DBPath), "reads.db"),
+		WhispcrawlDB:      whispDefaults.DBPath,
+		GmeetcrawlDB:      gmeetDefaults.DBPath,
+		ExportcrawlDB:     exportDefaults.DBPath,
+		GraincrawlDB:      grainDefaults.DBPath,
+		GranolacrawlDB:    granolaDefaults.DBPath,
+		FireflyescrawlDB:  firefliesDefaults.DBPath,
+		FathomcrawlDB:     fathomDefaults.DBPath,
+		KrispcrawlDB:      krispDefaults.DBPath,
+		CirclebackcrawlDB: circlebackDefaults.DBPath,
 		OpenWhispr: OpenWhisprSection{
 			SourceDB: whispDefaults.SourceDB,
 			CacheDir: whispDefaults.CacheDir,
@@ -227,6 +242,11 @@ func Defaults() (Config, string, error) {
 			LogDir:    krispDefaults.LogDir,
 			APIKeyRef: secret.AccountKrispAPIKey,
 		},
+		Circleback: CirclebackSection{
+			CacheDir:  circlebackDefaults.CacheDir,
+			LogDir:    circlebackDefaults.LogDir,
+			APIKeyRef: secret.AccountCirclebackAPIKey,
+		},
 		Secrets: SecretsSection{
 			Provider: secret.ProviderKeychain,
 		},
@@ -267,6 +287,7 @@ func Load(configPath string) (Config, string, error) {
 	cfg.FireflyescrawlDB = ckconfig.ExpandHome(cfg.FireflyescrawlDB)
 	cfg.FathomcrawlDB = ckconfig.ExpandHome(cfg.FathomcrawlDB)
 	cfg.KrispcrawlDB = ckconfig.ExpandHome(cfg.KrispcrawlDB)
+	cfg.CirclebackcrawlDB = ckconfig.ExpandHome(cfg.CirclebackcrawlDB)
 	cfg.OpenWhispr.SourceDB = ckconfig.ExpandHome(cfg.OpenWhispr.SourceDB)
 	cfg.OpenWhispr.CacheDir = ckconfig.ExpandHome(cfg.OpenWhispr.CacheDir)
 	cfg.OpenWhispr.LogDir = ckconfig.ExpandHome(cfg.OpenWhispr.LogDir)
@@ -287,6 +308,8 @@ func Load(configPath string) (Config, string, error) {
 	cfg.Fathom.LogDir = ckconfig.ExpandHome(cfg.Fathom.LogDir)
 	cfg.Krisp.CacheDir = ckconfig.ExpandHome(cfg.Krisp.CacheDir)
 	cfg.Krisp.LogDir = ckconfig.ExpandHome(cfg.Krisp.LogDir)
+	cfg.Circleback.CacheDir = ckconfig.ExpandHome(cfg.Circleback.CacheDir)
+	cfg.Circleback.LogDir = ckconfig.ExpandHome(cfg.Circleback.LogDir)
 	cfg.Calendar.FixtureDir = ckconfig.ExpandHome(cfg.Calendar.FixtureDir)
 	cfg.Calendar.OAuthClientPath = ckconfig.ExpandHome(cfg.Calendar.OAuthClientPath)
 	cfg.Calendar.TokenPath = ckconfig.ExpandHome(cfg.Calendar.TokenPath)
@@ -356,6 +379,13 @@ func Load(configPath string) (Config, string, error) {
 		}
 		cfg.KrispcrawlDB = krispDefaults.DBPath
 	}
+	if cfg.CirclebackcrawlDB == "" {
+		circlebackDefaults, _, err := circlebackconfig.Defaults()
+		if err != nil {
+			return Config{}, resolved, err
+		}
+		cfg.CirclebackcrawlDB = circlebackDefaults.DBPath
+	}
 	if cfg.Calendar.OAuthClientPath == "" {
 		gmeetDefaults, _, err := gconfig.Defaults()
 		if err != nil {
@@ -383,6 +413,7 @@ func fillSourceSections(cfg Config) Config {
 	firefliesDefaults, _, _ := firefliesconfig.Defaults()
 	fathomDefaults, _, _ := fathomconfig.Defaults()
 	krispDefaults, _, _ := krispconfig.Defaults()
+	circlebackDefaults, _, _ := circlebackconfig.Defaults()
 	if cfg.OpenWhispr.SourceDB == "" {
 		cfg.OpenWhispr.SourceDB = whispDefaults.SourceDB
 	}
@@ -460,6 +491,15 @@ func fillSourceSections(cfg Config) Config {
 	}
 	if strings.TrimSpace(cfg.Krisp.APIKeyRef) == "" {
 		cfg.Krisp.APIKeyRef = secret.AccountKrispAPIKey
+	}
+	if cfg.Circleback.CacheDir == "" {
+		cfg.Circleback.CacheDir = circlebackDefaults.CacheDir
+	}
+	if cfg.Circleback.LogDir == "" {
+		cfg.Circleback.LogDir = circlebackDefaults.LogDir
+	}
+	if strings.TrimSpace(cfg.Circleback.APIKeyRef) == "" {
+		cfg.Circleback.APIKeyRef = secret.AccountCirclebackAPIKey
 	}
 	if strings.TrimSpace(cfg.Secrets.Provider) == "" {
 		cfg.Secrets.Provider = secret.ProviderKeychain
@@ -558,6 +598,17 @@ func (c Config) KrispConfig() krispconfig.Config {
 	}
 }
 
+func (c Config) CirclebackConfig() circlebackconfig.Config {
+	return circlebackconfig.Config{
+		Version:         c.Version,
+		DBPath:          c.CirclebackcrawlDB,
+		CacheDir:        c.Circleback.CacheDir,
+		LogDir:          c.Circleback.LogDir,
+		APIKeyRef:       c.Circleback.APIKeyRef,
+		SecretsProvider: c.Secrets.Provider,
+	}
+}
+
 func (c Config) SecretProvider() (secret.Provider, error) {
 	return secret.NewProvider(secret.Options{
 		Provider:  c.Secrets.Provider,
@@ -597,6 +648,7 @@ func (c ConfigView) GranolaArchiveDB() string    { return c.GranolacrawlDB }
 func (c ConfigView) FirefliesArchiveDB() string  { return c.FireflyescrawlDB }
 func (c ConfigView) FathomArchiveDB() string     { return c.FathomcrawlDB }
 func (c ConfigView) KrispArchiveDB() string      { return c.KrispcrawlDB }
+func (c ConfigView) CirclebackArchiveDB() string { return c.CirclebackcrawlDB }
 func (c ConfigView) WhispConfig() wconfig.Config { return Config(c).WhispConfig() }
 func (c ConfigView) GMeetConfig() gconfig.Config { return Config(c).GMeetConfig() }
 func (c ConfigView) ExportFileConfig() econfig.Config {
@@ -616,6 +668,9 @@ func (c ConfigView) FathomConfig() fathomconfig.Config {
 }
 func (c ConfigView) KrispConfig() krispconfig.Config {
 	return Config(c).KrispConfig()
+}
+func (c ConfigView) CirclebackConfig() circlebackconfig.Config {
+	return Config(c).CirclebackConfig()
 }
 
 func MarshalPreview(cfg Config) ([]byte, error) {

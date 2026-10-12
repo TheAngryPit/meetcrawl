@@ -59,6 +59,18 @@
             ],
             "json": true
         },
+        "sync-circleback": {
+            "title": "Sync circleback",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "circleback"
+            ],
+            "json": true,
+            "mutates": true
+        },
         "sync-export_file": {
             "title": "Sync export-file",
             "argv": [
@@ -67,6 +79,30 @@
                 "--json",
                 "--source",
                 "export-file"
+            ],
+            "json": true,
+            "mutates": true
+        },
+        "sync-fathom": {
+            "title": "Sync fathom",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "fathom"
+            ],
+            "json": true,
+            "mutates": true
+        },
+        "sync-fireflies": {
+            "title": "Sync fireflies",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "fireflies"
             ],
             "json": true,
             "mutates": true
@@ -103,30 +139,6 @@
                 "--json",
                 "--source",
                 "granola"
-            ],
-            "json": true,
-            "mutates": true
-        },
-        "sync-fireflies": {
-            "title": "Sync fireflies",
-            "argv": [
-                "meet",
-                "sync",
-                "--json",
-                "--source",
-                "fireflies"
-            ],
-            "json": true,
-            "mutates": true
-        },
-        "sync-fathom": {
-            "title": "Sync fathom",
-            "argv": [
-                "meet",
-                "sync",
-                "--json",
-                "--source",
-                "fathom"
             ],
             "json": true,
             "mutates": true
@@ -176,6 +188,7 @@
             "fireflies SQLite archive",
             "fathom SQLite archive",
             "krisp SQLite archive",
+            "circleback SQLite archive",
             "meet index SQLite archive"
         ]
     }

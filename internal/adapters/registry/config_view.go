@@ -1,6 +1,7 @@
 package registry
 
 import (
+	circlebackconfig "github.com/TheAngryPit/meetcrawl/internal/circleback/config"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	fathomconfig "github.com/TheAngryPit/meetcrawl/internal/fathom/config"
 	firefliesconfig "github.com/TheAngryPit/meetcrawl/internal/fireflies/config"
@@ -21,6 +22,7 @@ type ConfigView interface {
 	FirefliesArchiveDB() string
 	FathomArchiveDB() string
 	KrispArchiveDB() string
+	CirclebackArchiveDB() string
 	WhispConfig() wconfig.Config
 	GMeetConfig() gconfig.Config
 	ExportFileConfig() econfig.Config
@@ -29,4 +31,5 @@ type ConfigView interface {
 	FirefliesConfig() firefliesconfig.Config
 	FathomConfig() fathomconfig.Config
 	KrispConfig() krispconfig.Config
+	CirclebackConfig() circlebackconfig.Config
 }

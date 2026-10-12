@@ -30,6 +30,8 @@ func parseArchiveOverrides(args []string) map[registry.Name]string {
 	set("fathom", "--fathomcrawl-db")
 	set("krisp", "--krisp-db")
 	set("krisp", "--krispcrawl-db")
+	set("circleback", "--circleback-db")
+	set("circleback", "--circlebackcrawl-db")
 	return out
 }
 

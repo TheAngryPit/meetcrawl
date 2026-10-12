@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -101,13 +100,21 @@ func runMetadataApp(t *testing.T) []byte {
 
 func moduleRoot(t *testing.T) string {
 	t.Helper()
-	cmd := exec.Command("go", "list", "-m", "-f", "{{.Dir}}")
-	cmd.Env = append(os.Environ(), "GOTELEMETRY=off")
-	out, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("go list -m: %v", err)
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
 	}
-	return strings.TrimSpace(string(out))
+	dir := filepath.Dir(file)
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			t.Fatal("go.mod not found")
+		}
+		dir = parent
+	}
 }
 
 func validateManifestExported(m control.Manifest) error {

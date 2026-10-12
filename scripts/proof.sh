@@ -24,6 +24,7 @@ GRAIN_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/grain/supported"
 GRANOLA_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/granola/supported"
 FIREFLIES_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/fireflies/supported"
 FATHOM_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/fathom/supported"
+KRISP_SUPPORTED_FIX="${REPO_ROOT}/testdata/fixtures/krisp/supported"
 CALENDAR_FIX="${REPO_ROOT}/testdata/fixtures/calendar/synthetic"
 
 mkdir -p "${PROOF_DIR}"
@@ -155,7 +156,14 @@ run_sync_ingest() {
   local fathom_artifacts
   fathom_artifacts="$(json_get result.artifacts "${fathom_out}")"
   [[ "${fathom_artifacts}" == "1" ]] || fail "fathom artifacts=${fathom_artifacts} want 1"
-  log "sync ingest ok (3 + 3 + 4 + 1 + 1 + 1 + 1 artifacts)"
+
+  local krisp_out
+  krisp_out="$("${BINDIR}/meet" --json sync --source krisp --fixture "${KRISP_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/krisp-sync.log")"
+  echo "${krisp_out}" >>"${PROOF_DIR}/krisp-sync.log"
+  local krisp_artifacts
+  krisp_artifacts="$(json_get result.artifacts "${krisp_out}")"
+  [[ "${krisp_artifacts}" == "1" ]] || fail "krisp artifacts=${krisp_artifacts} want 1"
+  log "sync ingest ok (3 + 3 + 4 + 1 + 1 + 1 + 1 + 1 artifacts)"
 }
 
 patch_meetcrawl_privacy() {
@@ -182,14 +190,14 @@ run_index_checks() {
   echo "${idx_out}" >>"${PROOF_DIR}/index.log"
   local meetings
   meetings="$(json_get result.meetings "${idx_out}")"
-  [[ "${meetings}" == "3" ]] || fail "index meetings=${meetings} want 3"
+  [[ "${meetings}" == "4" ]] || fail "index meetings=${meetings} want 4"
   [[ -f "${INDEX_DB}" ]] || fail "index db missing at ${INDEX_DB}"
 
   local dedup_fidelity adhoc_count
   dedup_fidelity="$(sqlite3 "${INDEX_DB}" "select best_fidelity from meetings where meeting_id not like 'adhoc:%' limit 1;")"
   [[ "${dedup_fidelity}" == "transcript" ]] || fail "dedup best_fidelity=${dedup_fidelity} want transcript"
   adhoc_count="$(sqlite3 "${INDEX_DB}" "select count(*) from meetings where meeting_id like 'adhoc:%';")"
-  [[ "${adhoc_count}" == "1" ]] || fail "adhoc meetings=${adhoc_count} want 1"
+  [[ "${adhoc_count}" == "2" ]] || fail "adhoc meetings=${adhoc_count} want 2"
 
   local enriched_ical shared_meeting_id adhoc_mid whisp_on_shared gmeet_on_shared other_meeting_for_transcript
   enriched_ical="$(sqlite3 "${INDEX_DB}" "select ical_uid from meetings where ical_uid = 'cal-synthetic-001' limit 1;")"
@@ -247,7 +255,7 @@ PY
   echo "${status_out}" >>"${PROOF_DIR}/status.log"
   local status_meetings
   status_meetings="$(json_get result.meetings "${status_out}")"
-  [[ "${status_meetings}" == "3" ]] || fail "status meetings=${status_meetings} want 3"
+  [[ "${status_meetings}" == "4" ]] || fail "status meetings=${status_meetings} want 4"
   log "index dedup, pt-PT search, and status ok"
 }
 

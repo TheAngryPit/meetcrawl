@@ -10,6 +10,7 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/gmeet"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/grain"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/granola"
+	"github.com/TheAngryPit/meetcrawl/internal/adapters/krisp"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/openwhispr"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	fathomconfig "github.com/TheAngryPit/meetcrawl/internal/fathom/config"
@@ -17,6 +18,7 @@ import (
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
 	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
 	granolaconfig "github.com/TheAngryPit/meetcrawl/internal/granola/config"
+	krispconfig "github.com/TheAngryPit/meetcrawl/internal/krisp/config"
 	"github.com/TheAngryPit/meetcrawl/internal/secret"
 	"github.com/TheAngryPit/meetcrawl/internal/source"
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
@@ -219,6 +221,26 @@ func init() {
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.FathomConfig()
 			return fathom.Adapter{
+				Config:         cfg,
+				FixtureDir:     o.FixtureDir,
+				CrawlerVersion: d.CrawlerVersion,
+				Secrets:        d.Secrets,
+			}
+		},
+	})
+	Register(Entry{
+		Name:  "krisp",
+		Kind:  source.KindKrisp,
+		Scope: "krisp SQLite archive",
+		ArchivePath: func(c ConfigView) string {
+			return c.KrispArchiveDB()
+		},
+		EnsureDirs: func(c ConfigView) error {
+			return krispconfig.EnsureDirs(c.KrispConfig())
+		},
+		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
+			cfg := d.Config.KrispConfig()
+			return krisp.Adapter{
 				Config:         cfg,
 				FixtureDir:     o.FixtureDir,
 				CrawlerVersion: d.CrawlerVersion,

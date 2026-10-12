@@ -2,7 +2,7 @@
 
 Status: approved by the owner on 2026-10-08. Repo: `TheAngryPit/meetcrawl`. License: MIT.
 
-**Source-agnostic by design.** meetcrawl is meant to archive meeting transcripts from any tool that records them (OpenWhispr, Google Meet/Gemini, Grain, Granola, Zoom, Teams, Otter, Fireflies, Fathom, plain exported files, and so on). Each source is a separate adapter behind one shared contract, and the index never depends on a specific provider. Phase 1 ships three core adapters (openwhispr, gmeet-gemini, export-file); **Grain, Granola, Fireflies, and Fathom are phase adapters** registered alongside them. More sources register in `internal/adapters/registry` without changing the index or MCP surface.
+**Source-agnostic by design.** meetcrawl is meant to archive meeting transcripts from any tool that records them (OpenWhispr, Google Meet/Gemini, Grain, Granola, Zoom, Teams, Otter, Fireflies, Fathom, plain exported files, and so on). Each source is a separate adapter behind one shared contract, and the index never depends on a specific provider. Phase 1 ships three core adapters (openwhispr, gmeet-gemini, export-file); **Grain, Granola, Fireflies, Fathom, and Krisp are phase adapters** registered alongside them. More sources register in `internal/adapters/registry` without changing the index or MCP surface.
 
 ## 1. What it is
 A local-first, read-only archive of your meetings that any agent can query. It follows the crawl-app pattern:
@@ -19,12 +19,13 @@ one shared Go base (`crawlkit`), one **`meet` binary** with pluggable **source a
 ## 3. Repo layout (one Go module, crawlkit pattern)
 ```
 cmd/meet/                              # single shipped binary
-internal/adapters/{openwhispr,gmeet,exportfile,grain,granola,fireflies,fathom}/   # thin wrappers
+internal/adapters/{openwhispr,gmeet,exportfile,grain,granola,fireflies,fathom,krisp}/   # thin wrappers
 internal/secret/                       # shared secret providers (keychain, 1Password op)
 internal/grain/                        # Grain API ingest + archive
 internal/granola/                      # Granola REST API ingest + archive
 internal/fireflies/                    # Fireflies GraphQL API ingest + archive
 internal/fathom/                       # Fathom REST API ingest + archive
+internal/krisp/                        # Krisp Meeting Assistant REST API ingest + archive
 internal/adapters/registry/            # built-in adapter registry
 internal/source/                       # shared adapter contract (SyncOutcome, Kind, …)
 internal/whisp/   internal/gmeet/   internal/exportcrawl/   # ingest + archives
@@ -34,7 +35,7 @@ testdata/fixtures/{openwhispr,gdrive,export-file,calendar}/        scripts/proof
 ```
 Go 1.27+ (crawlkit minimum). `make check` mirrors crawlkit: tidy, fmt, vet, unit and race tests with `GOWORK=off`.
 
-**Config and archives (unified `meet` config).** Default config: `~/.config/meetcrawl/config.toml` (`MEETCRAWL_CONFIG`). Index: `~/.local/share/meetcrawl/meetcrawl.db` and `reads.db`. Shipped sources register in `internal/adapters/registry`; index, doctor, and crawlbar read that registry (no hard-coded source list in CLI). Per-source archive paths remain the legacy keys `whispcrawl_db`, `gmeetcrawl_db`, `exportcrawl_db`, `graincrawl_db`, `granolacrawl_db`, `fireflyescrawl_db`, and `fathomcrawl_db` (defaults under `~/.local/share/{whispcrawl,gmeetcrawl,exportcrawl,graincrawl,granolacrawl,fireflyescrawl,fathomcrawl}/`). Nested tables `[openwhispr]`, `[gmeet]`, `[export_file]`, `[grain]`, `[granola]`, `[fireflies]`, and `[fathom]` hold source-specific settings. **`[secrets]`** selects the secret provider (`keychain` on macOS, or read-only `op` for 1Password references like `op://vault/item/field`). Adapter API keys are resolved through that provider only; they are never stored in the repo, archives, or logs. **`meet index` migration aliases:** `--openwhispr-db` / `--whispcrawl-db`, `--gmeet-db` / `--gmeetcrawl-db`, `--export-file-db` / `--exportcrawl-db`, `--grain-db` / `--graincrawl-db`, `--granola-db` / `--granolacrawl-db`, `--fireflies-db` / `--fireflyescrawl-db`, `--fathom-db` / `--fathomcrawl-db` override archive paths per registered source name. **Migration:** existing per-crawler configs under `~/.config/{whispcrawl,gmeetcrawl,exportcrawl}/` are not auto-imported; `meet init` writes the unified file. Point archive path keys at existing DB files to reuse data.
+**Config and archives (unified `meet` config).** Default config: `~/.config/meetcrawl/config.toml` (`MEETCRAWL_CONFIG`). Index: `~/.local/share/meetcrawl/meetcrawl.db` and `reads.db`. Shipped sources register in `internal/adapters/registry`; index, doctor, and crawlbar read that registry (no hard-coded source list in CLI). Per-source archive paths remain the legacy keys `whispcrawl_db`, `gmeetcrawl_db`, `exportcrawl_db`, `graincrawl_db`, `granolacrawl_db`, `fireflyescrawl_db`, `fathomcrawl_db`, and `krispcrawl_db` (defaults under `~/.local/share/{whispcrawl,gmeetcrawl,exportcrawl,graincrawl,granolacrawl,fireflyescrawl,fathomcrawl,krispcrawl}/`). Nested tables `[openwhispr]`, `[gmeet]`, `[export_file]`, `[grain]`, `[granola]`, `[fireflies]`, `[fathom]`, and `[krisp]` hold source-specific settings. **`[secrets]`** selects the secret provider (`keychain` on macOS, or read-only `op` for 1Password references like `op://vault/item/field`). Adapter API keys are resolved through that provider only; they are never stored in the repo, archives, or logs. **`meet index` migration aliases:** `--openwhispr-db` / `--whispcrawl-db`, `--gmeet-db` / `--gmeetcrawl-db`, `--export-file-db` / `--exportcrawl-db`, `--grain-db` / `--graincrawl-db`, `--granola-db` / `--granolacrawl-db`, `--fireflies-db` / `--fireflyescrawl-db`, `--fathom-db` / `--fathomcrawl-db`, `--krisp-db` / `--krispcrawl-db` override archive paths per registered source name. **Migration:** existing per-crawler configs under `~/.config/{whispcrawl,gmeetcrawl,exportcrawl}/` are not auto-imported; `meet init` writes the unified file. Point archive path keys at existing DB files to reuse data.
 
 ## 4. Shared base: what we take from crawlkit (no forks, no new shared APIs)
 | Need | crawlkit package |
@@ -50,7 +51,7 @@ Snapshot, backup, mirror (Git) and embed/vector are **not used in phase 1**. Pro
 
 **Adapter vs core boundary.** Anything that links or spans more than one source—calendar enrichment, meeting identity, cross-source dedup—lives in core (`meet index`, `internal/index`, `internal/calendar`), never inside a source adapter. Adapters only read their own source and write their private archive.
 
-**CLI (`meet`).** Commands: `init`, `doctor`, `sync --source openwhispr|gmeet|export-file|grain|granola|fireflies|fathom`, `index`, `status`, `search`, `metadata --json`, `mcp`, `auth` (gmeet OAuth). `--json` goes before the command. New sources ship by registering one adapter in the registry (no new binary; index and MCP unchanged).
+**CLI (`meet`).** Commands: `init`, `doctor`, `sync --source openwhispr|gmeet|export-file|grain|granola|fireflies|fathom|krisp`, `index`, `status`, `search`, `metadata --json`, `mcp`, `auth` (gmeet OAuth). `--json` goes before the command. New sources ship by registering one adapter in the registry (no new binary; index and MCP unchanged).
 
 **openwhispr adapter (`internal/adapters/openwhispr`).**
 - Source: OpenWhispr's `transcriptions.db` in its app-data dir, overridable with `meet sync --source openwhispr --source-db <path>`.
@@ -99,6 +100,15 @@ Snapshot, backup, mirror (Git) and embed/vector are **not used in phase 1**. Pro
 - `meet sync --source fathom --fixture <dir>` replays synthetic list/transcript fixtures (`testdata/fixtures/fathom/`); CI and proof never call the live API.
 <!-- SPEC-FLAG: fathom-empty-account-fails-closed-2026-10-12 -->
 - Live or fixture sync with zero meetings fails closed (`no fathom meetings returned`), same as Grain, Granola, and Fireflies when the remote list is empty. A successful empty sync (zero artifacts, exit OK) is not specified today.
+
+<!-- SPEC-FLAG: krisp-rest-phase-adapter-2026-10-12 -->
+**krisp adapter (`internal/adapters/krisp`): Krisp meeting transcripts (phase adapter, REST only).**
+- Live sync uses the Krisp Meeting Assistant public REST API (`https://meeting-api.krisp.ai/v1`) with Bearer personal API key auth, cursor-paginated `GET /meetings` for meeting `id`, `title`, `started_at`, and `duration`, and `GET /meetings/{id}?fields=transcript` for transcript `segments` (`speaker` diarization index, `text`, `start`/`end` in seconds) with optional `speakers` name map. Transcripts only; no AI notes, action items, recording import, or tags in this adapter.
+- API key via shared `internal/secret` provider: macOS keychain account (default `[krisp] api_key_ref = "krisp-api-key"` under service `meetcrawl`) or 1Password `op read` on an `op://…` reference when `[secrets] provider = "op"`. Missing or invalid secret → sync fails closed with no archive artifacts; secrets never logged.
+- Krisp list/detail responses do not expose a calendar event id for core enrichment; this adapter stores no invented calendar identifiers.
+- `meet sync --source krisp --fixture <dir>` replays synthetic list/transcript fixtures (`testdata/fixtures/krisp/`); CI and proof never call the live API.
+<!-- SPEC-FLAG: krisp-empty-account-fails-closed-2026-10-12 -->
+- Live or fixture sync with zero meetings fails closed (`no krisp meetings returned`), same as other REST phase adapters when the remote list is empty. A successful empty sync (zero artifacts, exit OK) is not specified today.
 
 ## 6. Meetings index (`meet index`): thin, rebuildable, read-only over source archives
 Opens each source archive DB with `store.OpenReadOnly` and writes only `meetcrawl.db`. Deleting it and re-running `index` reproduces the same content (an ordered row dump hashes the same).

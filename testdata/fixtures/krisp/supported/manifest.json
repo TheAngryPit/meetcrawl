@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "meetings": [
+    {
+      "id": "019a4988d3f4755ea05e0ad1c5a1eaea",
+      "title": "Synthetic Krisp standup",
+      "started_at": "2025-11-05T10:45:48Z",
+      "duration": 1800,
+      "transcript_path": "transcripts/standup.json"
+    }
+  ]
+}

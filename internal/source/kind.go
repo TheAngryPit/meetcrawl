@@ -16,6 +16,7 @@ const (
 	KindExportFile  Kind = "export-file"
 	KindGrain       Kind = "grain"
 	KindGranola     Kind = "granola"
+	KindFireflies   Kind = "fireflies"
 )
 
 func (k Kind) String() string { return string(k) }

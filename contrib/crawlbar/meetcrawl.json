@@ -131,6 +131,18 @@
             "json": true,
             "mutates": true
         },
+        "sync-krisp": {
+            "title": "Sync krisp",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "krisp"
+            ],
+            "json": true,
+            "mutates": true
+        },
         "sync-openwhispr": {
             "title": "Sync openwhispr",
             "argv": [
@@ -163,6 +175,7 @@
             "granola SQLite archive",
             "fireflies SQLite archive",
             "fathom SQLite archive",
+            "krisp SQLite archive",
             "meet index SQLite archive"
         ]
     }

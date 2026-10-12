@@ -7,6 +7,7 @@ import (
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
 	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
 	granolaconfig "github.com/TheAngryPit/meetcrawl/internal/granola/config"
+	krispconfig "github.com/TheAngryPit/meetcrawl/internal/krisp/config"
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
 )
 
@@ -19,6 +20,7 @@ type ConfigView interface {
 	GranolaArchiveDB() string
 	FirefliesArchiveDB() string
 	FathomArchiveDB() string
+	KrispArchiveDB() string
 	WhispConfig() wconfig.Config
 	GMeetConfig() gconfig.Config
 	ExportFileConfig() econfig.Config
@@ -26,4 +28,5 @@ type ConfigView interface {
 	GranolaConfig() granolaconfig.Config
 	FirefliesConfig() firefliesconfig.Config
 	FathomConfig() fathomconfig.Config
+	KrispConfig() krispconfig.Config
 }

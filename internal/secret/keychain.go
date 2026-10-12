@@ -19,6 +19,8 @@ const AccountFirefliesAPIKey = "fireflies-api-key"
 
 const AccountFathomAPIKey = "fathom-api-key"
 
+const AccountKrispAPIKey = "krisp-api-key"
+
 type KeychainBackend interface {
 	Get(service, account string) (string, error)
 }

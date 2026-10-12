@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/TheAngryPit/meetcrawl/internal/adapters/circleback"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/exportfile"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/fathom"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/fireflies"
@@ -12,6 +13,7 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/granola"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/krisp"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/openwhispr"
+	circlebackconfig "github.com/TheAngryPit/meetcrawl/internal/circleback/config"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	fathomconfig "github.com/TheAngryPit/meetcrawl/internal/fathom/config"
 	firefliesconfig "github.com/TheAngryPit/meetcrawl/internal/fireflies/config"
@@ -241,6 +243,26 @@ func init() {
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.KrispConfig()
 			return krisp.Adapter{
+				Config:         cfg,
+				FixtureDir:     o.FixtureDir,
+				CrawlerVersion: d.CrawlerVersion,
+				Secrets:        d.Secrets,
+			}
+		},
+	})
+	Register(Entry{
+		Name:  "circleback",
+		Kind:  source.KindCircleback,
+		Scope: "circleback SQLite archive",
+		ArchivePath: func(c ConfigView) string {
+			return c.CirclebackArchiveDB()
+		},
+		EnsureDirs: func(c ConfigView) error {
+			return circlebackconfig.EnsureDirs(c.CirclebackConfig())
+		},
+		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
+			cfg := d.Config.CirclebackConfig()
+			return circleback.Adapter{
 				Config:         cfg,
 				FixtureDir:     o.FixtureDir,
 				CrawlerVersion: d.CrawlerVersion,

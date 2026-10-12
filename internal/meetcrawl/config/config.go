@@ -9,6 +9,7 @@ import (
 
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/registry"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
+	fathomconfig "github.com/TheAngryPit/meetcrawl/internal/fathom/config"
 	firefliesconfig "github.com/TheAngryPit/meetcrawl/internal/fireflies/config"
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
 	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
@@ -86,6 +87,13 @@ type FirefliesSection struct {
 	APIKeyRef string `toml:"api_key_ref,omitempty" json:"api_key_ref,omitempty"`
 }
 
+// FathomSection holds Fathom REST API ingest settings; archive path stays fathomcrawl_db.
+type FathomSection struct {
+	CacheDir  string `toml:"cache_dir,omitempty" json:"cache_dir,omitempty"`
+	LogDir    string `toml:"log_dir,omitempty" json:"log_dir,omitempty"`
+	APIKeyRef string `toml:"api_key_ref,omitempty" json:"api_key_ref,omitempty"`
+}
+
 type Config struct {
 	Version          int               `toml:"version" json:"version"`
 	DBPath           string            `toml:"db_path" json:"db_path"`
@@ -96,12 +104,14 @@ type Config struct {
 	GraincrawlDB     string            `toml:"graincrawl_db" json:"graincrawl_db"`
 	GranolacrawlDB   string            `toml:"granolacrawl_db" json:"granolacrawl_db"`
 	FireflyescrawlDB string            `toml:"fireflyescrawl_db" json:"fireflyescrawl_db"`
+	FathomcrawlDB    string            `toml:"fathomcrawl_db" json:"fathomcrawl_db"`
 	OpenWhispr       OpenWhisprSection `toml:"openwhispr" json:"openwhispr"`
 	GMeet            GMeetSection      `toml:"gmeet" json:"gmeet"`
 	ExportFile       ExportFileSection `toml:"export_file" json:"export_file"`
 	Grain            GrainSection      `toml:"grain" json:"grain"`
 	Granola          GranolaSection    `toml:"granola" json:"granola"`
 	Fireflies        FirefliesSection  `toml:"fireflies" json:"fireflies"`
+	Fathom           FathomSection     `toml:"fathom" json:"fathom"`
 	Secrets          SecretsSection    `toml:"secrets" json:"secrets"`
 	Privacy          privacy.Config    `toml:"privacy" json:"privacy"`
 	Calendar         CalendarConfig    `toml:"calendar" json:"calendar"`
@@ -145,6 +155,10 @@ func Defaults() (Config, string, error) {
 	if err != nil {
 		return Config{}, "", err
 	}
+	fathomDefaults, _, err := fathomconfig.Defaults()
+	if err != nil {
+		return Config{}, "", err
+	}
 	cfg := Config{
 		Version:          1,
 		DBPath:           paths.DBPath,
@@ -155,6 +169,7 @@ func Defaults() (Config, string, error) {
 		GraincrawlDB:     grainDefaults.DBPath,
 		GranolacrawlDB:   granolaDefaults.DBPath,
 		FireflyescrawlDB: firefliesDefaults.DBPath,
+		FathomcrawlDB:    fathomDefaults.DBPath,
 		OpenWhispr: OpenWhisprSection{
 			SourceDB: whispDefaults.SourceDB,
 			CacheDir: whispDefaults.CacheDir,
@@ -186,6 +201,11 @@ func Defaults() (Config, string, error) {
 			CacheDir:  firefliesDefaults.CacheDir,
 			LogDir:    firefliesDefaults.LogDir,
 			APIKeyRef: secret.AccountFirefliesAPIKey,
+		},
+		Fathom: FathomSection{
+			CacheDir:  fathomDefaults.CacheDir,
+			LogDir:    fathomDefaults.LogDir,
+			APIKeyRef: secret.AccountFathomAPIKey,
 		},
 		Secrets: SecretsSection{
 			Provider: secret.ProviderKeychain,
@@ -225,6 +245,7 @@ func Load(configPath string) (Config, string, error) {
 	cfg.GraincrawlDB = ckconfig.ExpandHome(cfg.GraincrawlDB)
 	cfg.GranolacrawlDB = ckconfig.ExpandHome(cfg.GranolacrawlDB)
 	cfg.FireflyescrawlDB = ckconfig.ExpandHome(cfg.FireflyescrawlDB)
+	cfg.FathomcrawlDB = ckconfig.ExpandHome(cfg.FathomcrawlDB)
 	cfg.OpenWhispr.SourceDB = ckconfig.ExpandHome(cfg.OpenWhispr.SourceDB)
 	cfg.OpenWhispr.CacheDir = ckconfig.ExpandHome(cfg.OpenWhispr.CacheDir)
 	cfg.OpenWhispr.LogDir = ckconfig.ExpandHome(cfg.OpenWhispr.LogDir)
@@ -241,6 +262,8 @@ func Load(configPath string) (Config, string, error) {
 	cfg.Granola.LogDir = ckconfig.ExpandHome(cfg.Granola.LogDir)
 	cfg.Fireflies.CacheDir = ckconfig.ExpandHome(cfg.Fireflies.CacheDir)
 	cfg.Fireflies.LogDir = ckconfig.ExpandHome(cfg.Fireflies.LogDir)
+	cfg.Fathom.CacheDir = ckconfig.ExpandHome(cfg.Fathom.CacheDir)
+	cfg.Fathom.LogDir = ckconfig.ExpandHome(cfg.Fathom.LogDir)
 	cfg.Calendar.FixtureDir = ckconfig.ExpandHome(cfg.Calendar.FixtureDir)
 	cfg.Calendar.OAuthClientPath = ckconfig.ExpandHome(cfg.Calendar.OAuthClientPath)
 	cfg.Calendar.TokenPath = ckconfig.ExpandHome(cfg.Calendar.TokenPath)
@@ -296,6 +319,13 @@ func Load(configPath string) (Config, string, error) {
 		}
 		cfg.FireflyescrawlDB = firefliesDefaults.DBPath
 	}
+	if cfg.FathomcrawlDB == "" {
+		fathomDefaults, _, err := fathomconfig.Defaults()
+		if err != nil {
+			return Config{}, resolved, err
+		}
+		cfg.FathomcrawlDB = fathomDefaults.DBPath
+	}
 	if cfg.Calendar.OAuthClientPath == "" {
 		gmeetDefaults, _, err := gconfig.Defaults()
 		if err != nil {
@@ -321,6 +351,7 @@ func fillSourceSections(cfg Config) Config {
 	grainDefaults, _, _ := grainconfig.Defaults()
 	granolaDefaults, _, _ := granolaconfig.Defaults()
 	firefliesDefaults, _, _ := firefliesconfig.Defaults()
+	fathomDefaults, _, _ := fathomconfig.Defaults()
 	if cfg.OpenWhispr.SourceDB == "" {
 		cfg.OpenWhispr.SourceDB = whispDefaults.SourceDB
 	}
@@ -380,6 +411,15 @@ func fillSourceSections(cfg Config) Config {
 	}
 	if strings.TrimSpace(cfg.Fireflies.APIKeyRef) == "" {
 		cfg.Fireflies.APIKeyRef = secret.AccountFirefliesAPIKey
+	}
+	if cfg.Fathom.CacheDir == "" {
+		cfg.Fathom.CacheDir = fathomDefaults.CacheDir
+	}
+	if cfg.Fathom.LogDir == "" {
+		cfg.Fathom.LogDir = fathomDefaults.LogDir
+	}
+	if strings.TrimSpace(cfg.Fathom.APIKeyRef) == "" {
+		cfg.Fathom.APIKeyRef = secret.AccountFathomAPIKey
 	}
 	if strings.TrimSpace(cfg.Secrets.Provider) == "" {
 		cfg.Secrets.Provider = secret.ProviderKeychain
@@ -456,6 +496,17 @@ func (c Config) FirefliesConfig() firefliesconfig.Config {
 	}
 }
 
+func (c Config) FathomConfig() fathomconfig.Config {
+	return fathomconfig.Config{
+		Version:         c.Version,
+		DBPath:          c.FathomcrawlDB,
+		CacheDir:        c.Fathom.CacheDir,
+		LogDir:          c.Fathom.LogDir,
+		APIKeyRef:       c.Fathom.APIKeyRef,
+		SecretsProvider: c.Secrets.Provider,
+	}
+}
+
 func (c Config) SecretProvider() (secret.Provider, error) {
 	return secret.NewProvider(secret.Options{
 		Provider:  c.Secrets.Provider,
@@ -493,6 +544,7 @@ func (c ConfigView) ExportFileArchiveDB() string { return c.ExportcrawlDB }
 func (c ConfigView) GrainArchiveDB() string      { return c.GraincrawlDB }
 func (c ConfigView) GranolaArchiveDB() string    { return c.GranolacrawlDB }
 func (c ConfigView) FirefliesArchiveDB() string  { return c.FireflyescrawlDB }
+func (c ConfigView) FathomArchiveDB() string     { return c.FathomcrawlDB }
 func (c ConfigView) WhispConfig() wconfig.Config { return Config(c).WhispConfig() }
 func (c ConfigView) GMeetConfig() gconfig.Config { return Config(c).GMeetConfig() }
 func (c ConfigView) ExportFileConfig() econfig.Config {
@@ -506,6 +558,9 @@ func (c ConfigView) GranolaConfig() granolaconfig.Config {
 }
 func (c ConfigView) FirefliesConfig() firefliesconfig.Config {
 	return Config(c).FirefliesConfig()
+}
+func (c ConfigView) FathomConfig() fathomconfig.Config {
+	return Config(c).FathomConfig()
 }
 
 func MarshalPreview(cfg Config) ([]byte, error) {

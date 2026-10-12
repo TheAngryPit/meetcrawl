@@ -119,6 +119,18 @@
             "json": true,
             "mutates": true
         },
+        "sync-fathom": {
+            "title": "Sync fathom",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "fathom"
+            ],
+            "json": true,
+            "mutates": true
+        },
         "sync-openwhispr": {
             "title": "Sync openwhispr",
             "argv": [
@@ -150,6 +162,7 @@
             "grain SQLite archive",
             "granola SQLite archive",
             "fireflies SQLite archive",
+            "fathom SQLite archive",
             "meet index SQLite archive"
         ]
     }

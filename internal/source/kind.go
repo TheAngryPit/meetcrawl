@@ -17,6 +17,7 @@ const (
 	KindGrain       Kind = "grain"
 	KindGranola     Kind = "granola"
 	KindFireflies   Kind = "fireflies"
+	KindFathom      Kind = "fathom"
 )
 
 func (k Kind) String() string { return string(k) }

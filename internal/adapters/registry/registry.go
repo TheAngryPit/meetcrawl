@@ -5,12 +5,14 @@ import (
 	"strings"
 
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/exportfile"
+	"github.com/TheAngryPit/meetcrawl/internal/adapters/fathom"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/fireflies"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/gmeet"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/grain"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/granola"
 	"github.com/TheAngryPit/meetcrawl/internal/adapters/openwhispr"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
+	fathomconfig "github.com/TheAngryPit/meetcrawl/internal/fathom/config"
 	firefliesconfig "github.com/TheAngryPit/meetcrawl/internal/fireflies/config"
 	gconfig "github.com/TheAngryPit/meetcrawl/internal/gmeet/config"
 	grainconfig "github.com/TheAngryPit/meetcrawl/internal/grain/config"
@@ -197,6 +199,26 @@ func init() {
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.FirefliesConfig()
 			return fireflies.Adapter{
+				Config:         cfg,
+				FixtureDir:     o.FixtureDir,
+				CrawlerVersion: d.CrawlerVersion,
+				Secrets:        d.Secrets,
+			}
+		},
+	})
+	Register(Entry{
+		Name:  "fathom",
+		Kind:  source.KindFathom,
+		Scope: "fathom SQLite archive",
+		ArchivePath: func(c ConfigView) string {
+			return c.FathomArchiveDB()
+		},
+		EnsureDirs: func(c ConfigView) error {
+			return fathomconfig.EnsureDirs(c.FathomConfig())
+		},
+		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
+			cfg := d.Config.FathomConfig()
+			return fathom.Adapter{
 				Config:         cfg,
 				FixtureDir:     o.FixtureDir,
 				CrawlerVersion: d.CrawlerVersion,

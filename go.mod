@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
-	github.com/openclaw/crawlkit v0.17.0
+	github.com/openclaw/crawlkit v0.17.3
 	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/oauth2 v0.37.0

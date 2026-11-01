@@ -2,7 +2,9 @@ package sync_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,6 +13,7 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/whisp/config"
 	"github.com/TheAngryPit/meetcrawl/internal/whisp/sync"
 	"github.com/TheAngryPit/meetcrawl/internal/whisp/testutil"
+	_ "modernc.org/sqlite"
 )
 
 func TestUnsupportedSchemaFailsClosed(t *testing.T) {
@@ -104,4 +107,49 @@ func fileSHA256(t *testing.T, path string) string {
 	}
 	sum := source.ContentHash(string(data))
 	return sum
+}
+
+func TestSyncLeavesNoCopyOfTheSourceDatabase(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	cfg := config.Config{
+		Version:  1,
+		DBPath:   filepath.Join(root, "whispcrawl.db"),
+		CacheDir: filepath.Join(root, "cache"),
+		LogDir:   filepath.Join(root, "logs"),
+	}
+	supported := filepath.Join(root, "supported", "transcriptions.db")
+	if err := testutil.WriteSupportedDB(supported); err != nil {
+		t.Fatalf("WriteSupportedDB() = %v", err)
+	}
+	db, err := sql.Open("sqlite", supported)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`create table note_speaker_embeddings (id integer primary key, embedding blob);
+insert into note_speaker_embeddings (embedding) values (x'0102030405');`); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+
+	unsupported := filepath.Join(root, "unsupported", "transcriptions.db")
+	if err := testutil.WriteUnsupportedDB(unsupported); err != nil {
+		t.Fatalf("WriteUnsupportedDB() = %v", err)
+	}
+
+	for name, sourceDB := range map[string]string{"supported": supported, "unsupported": unsupported} {
+		_, _ = sync.Run(context.Background(), cfg, sync.Options{SourceDB: sourceDB, CrawlerVersion: "whispcrawl-test"})
+		err := filepath.WalkDir(cfg.CacheDir, func(path string, d fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if !d.IsDir() {
+				t.Errorf("%s sync left a file in the cache: %s", name, path)
+			}
+			return nil
+		})
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			t.Fatal(err)
+		}
+	}
 }

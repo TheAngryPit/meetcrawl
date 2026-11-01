@@ -299,6 +299,12 @@ func (a App) runIndex(ctx context.Context, w io.Writer, flags GlobalFlags, args 
 	printKV(w, "contents", result.Contents)
 	printKV(w, "source_links", result.SourceLinks)
 	printKV(w, "database", cfg.DBPath)
+	for _, path := range result.SkippedSources {
+		if a.Stderr == nil {
+			break
+		}
+		fmt.Fprintf(a.Stderr, "skipped (not synced yet): %s\n", path)
+	}
 	return nil
 }
 

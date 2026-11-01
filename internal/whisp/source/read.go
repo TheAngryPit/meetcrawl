@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/TheAngryPit/meetcrawl/internal/source"
+	"github.com/TheAngryPit/meetcrawl/internal/whisp/schema"
 )
 
 // MeetingNote is one OpenWhispr notes row selected for archive ingest.
@@ -25,7 +26,15 @@ type MeetingNote struct {
 }
 
 func ReadMeetingNotes(ctx context.Context, db *sql.DB) ([]MeetingNote, error) {
-	const query = `
+	hasDuration, err := schema.NotesHasColumn(ctx, db, "audio_duration_seconds")
+	if err != nil {
+		return nil, err
+	}
+	duration := "0"
+	if hasDuration {
+		duration = "coalesce(audio_duration_seconds, 0)"
+	}
+	query := `
 select
   id,
   coalesce(transcript, ''),
@@ -34,7 +43,8 @@ select
   coalesce(updated_at, ''),
   coalesce(calendar_event_id, ''),
   coalesce(participants, ''),
-  coalesce(created_at, '')
+  coalesce(created_at, ''),
+  ` + duration + `
 from notes
 where note_type = 'meeting'
   and (deleted_at is null or trim(deleted_at) = '')
@@ -48,6 +58,7 @@ where note_type = 'meeting'
 	for rows.Next() {
 		var note MeetingNote
 		var updatedAt, createdAt string
+		var durationSeconds float64
 		if err := rows.Scan(
 			&note.ID,
 			&note.Transcript,
@@ -57,11 +68,15 @@ where note_type = 'meeting'
 			&note.CalendarEventID,
 			&note.Participants,
 			&createdAt,
+			&durationSeconds,
 		); err != nil {
 			return nil, err
 		}
 		note.SourceRevision = strings.TrimSpace(updatedAt)
 		note.Start = parseOpenWhisprTime(createdAt)
+		if !note.Start.IsZero() && durationSeconds > 0 {
+			note.End = note.Start.Add(time.Duration(durationSeconds * float64(time.Second)))
+		}
 		notes = append(notes, note)
 	}
 	return notes, rows.Err()

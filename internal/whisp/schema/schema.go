@@ -90,6 +90,16 @@ func DetectNotesLayout(ctx context.Context, db *sql.DB) (Layout, error) {
 	return LayoutUnknown, fmt.Errorf("PRAGMA table_info: unsupported notes layout")
 }
 
+// NotesHasColumn reports whether the notes table has a column, for columns
+// that newer OpenWhispr versions add and older ones lack.
+func NotesHasColumn(ctx context.Context, db *sql.DB, column string) (bool, error) {
+	cols, err := tableColumns(ctx, db, "notes")
+	if err != nil {
+		return false, err
+	}
+	return cols[column], nil
+}
+
 // ValidateNotesTable accepts desktop or iOS layouts; anything else fails closed.
 func ValidateNotesTable(ctx context.Context, db *sql.DB) error {
 	layout, err := DetectNotesLayout(ctx, db)

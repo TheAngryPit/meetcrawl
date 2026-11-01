@@ -3,6 +3,7 @@ package archive
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -29,6 +30,17 @@ func OpenReadOnly(ctx context.Context, path string) (*ReadOnlyStore, error) {
 		_ = inner.Close()
 		return nil, fmt.Errorf("index database %s is missing meetings table (run meetcrawl index)", path)
 	}
+	for _, add := range addedColumns {
+		has, err := hasColumn(ctx, inner.DB(), add.table, add.column)
+		if err != nil {
+			_ = inner.Close()
+			return nil, err
+		}
+		if !has {
+			_ = inner.Close()
+			return nil, fmt.Errorf("index database %s was built by an older meetcrawl (run meetcrawl index)", path)
+		}
+	}
 	return &ReadOnlyStore{inner: inner}, nil
 }
 
@@ -43,6 +55,8 @@ type MeetingSummary struct {
 	MeetingID    string `json:"meeting_id"`
 	BestFidelity string `json:"best_fidelity"`
 	PrivacyClass string `json:"privacy_class"`
+	// StartUTC is the earliest start any source reports, when one does.
+	StartUTC string `json:"start_utc,omitempty"`
 }
 
 type MeetingDetail struct {
@@ -51,6 +65,7 @@ type MeetingDetail struct {
 	PrivacyClass  string           `json:"privacy_class"`
 	ICalUID       string           `json:"ical_uid,omitempty"`
 	EventStartUTC string           `json:"event_start_utc,omitempty"`
+	StartUTC      string           `json:"start_utc,omitempty"`
 	Fidelities    []string         `json:"fidelities"`
 	Contents      []MeetingContent `json:"contents"`
 }
@@ -60,6 +75,37 @@ type MeetingContent struct {
 	Fidelity       string `json:"fidelity"`
 	Language       string `json:"language"`
 	NormalizedText string `json:"normalized_text"`
+	// Sources are the recorder records this text came from. A text that two
+	// recorders captured identically lists both.
+	Sources []ContentSource `json:"sources"`
+}
+
+// ContentSource is where one stored text came from. Participants is the
+// source's own invite list, a claim and not proof of who attended or spoke.
+type ContentSource struct {
+	Source         string          `json:"source"`
+	SourceID       string          `json:"source_id"`
+	SourceRevision string          `json:"source_revision,omitempty"`
+	StartUTC       string          `json:"start_utc,omitempty"`
+	EndUTC         string          `json:"end_utc,omitempty"`
+	Participants   json.RawMessage `json:"participants,omitempty"`
+}
+
+// participantsJSON returns the stored participants as JSON: as is when it
+// already is JSON, otherwise as a JSON string. Empty stays absent.
+func participantsJSON(raw string) json.RawMessage {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	if json.Valid([]byte(raw)) {
+		return json.RawMessage(raw)
+	}
+	quoted, err := json.Marshal(raw)
+	if err != nil {
+		return nil
+	}
+	return quoted
 }
 
 func (s *ReadOnlyStore) Search(ctx context.Context, query string, limit int, allow RestrictedAllowlist) ([]SearchHit, error) {
@@ -104,7 +150,9 @@ func (s *ReadOnlyStore) ListMeetings(ctx context.Context, limit int, allow Restr
 	filter, args := privacyFilterSQL(allow, "m")
 	args = append(args, limit)
 	rows, err := s.inner.DB().QueryContext(ctx, fmt.Sprintf(`
-select m.meeting_id, m.best_fidelity, m.privacy_class
+select m.meeting_id, m.best_fidelity, m.privacy_class,
+  (select min(s.window_start) from content_sources s
+    where s.meeting_id = m.meeting_id and s.window_start != '')
 from meetings m
 where %s
 order by m.meeting_id
@@ -117,9 +165,11 @@ limit ?
 	var out []MeetingSummary
 	for rows.Next() {
 		var item MeetingSummary
-		if err := rows.Scan(&item.MeetingID, &item.BestFidelity, &item.PrivacyClass); err != nil {
+		var start sql.NullString
+		if err := rows.Scan(&item.MeetingID, &item.BestFidelity, &item.PrivacyClass, &start); err != nil {
 			return nil, err
 		}
+		item.StartUTC = start.String
 		out = append(out, item)
 	}
 	return out, rows.Err()
@@ -183,7 +233,37 @@ from meeting_contents where meeting_id = ? order by fidelity, content_hash
 		}
 		detail.Contents = append(detail.Contents, c)
 	}
-	return detail, cRows.Err()
+	if err := cRows.Err(); err != nil {
+		return MeetingDetail{}, err
+	}
+	sRows, err := s.inner.DB().QueryContext(ctx, `
+select content_hash, source, source_id, source_revision, window_start, window_end, participants
+from content_sources where meeting_id = ? order by source, source_id
+`, meetingID)
+	if err != nil {
+		return MeetingDetail{}, err
+	}
+	defer sRows.Close()
+	byHash := map[string]int{}
+	for i := range detail.Contents {
+		detail.Contents[i].Sources = []ContentSource{}
+		byHash[detail.Contents[i].ContentHash] = i
+	}
+	for sRows.Next() {
+		var hash, participants string
+		var src ContentSource
+		if err := sRows.Scan(&hash, &src.Source, &src.SourceID, &src.SourceRevision, &src.StartUTC, &src.EndUTC, &participants); err != nil {
+			return MeetingDetail{}, err
+		}
+		src.Participants = participantsJSON(participants)
+		if i, ok := byHash[hash]; ok {
+			detail.Contents[i].Sources = append(detail.Contents[i].Sources, src)
+		}
+		if src.StartUTC != "" && (detail.StartUTC == "" || src.StartUTC < detail.StartUTC) {
+			detail.StartUTC = src.StartUTC
+		}
+	}
+	return detail, sRows.Err()
 }
 
 // RestrictedAllowlist lists meeting_ids that may surface despite restricted class.

@@ -41,8 +41,8 @@ Tools:
 | Tool | Purpose |
 |------|---------|
 | `search_meetings` | FTS search over indexed content (`query`, optional `limit`) |
-| `get_meeting` | One meeting by `meeting_id` |
-| `list_meetings` | Summaries (`limit` optional) |
+| `get_meeting` | One meeting by `meeting_id`, with each text's `sources` (source, source_id, source_revision, start/end, participants) |
+| `list_meetings` | Summaries with `start_utc` (`limit` optional) |
 
 Every text result begins with:
 

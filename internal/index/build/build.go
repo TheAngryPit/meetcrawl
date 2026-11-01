@@ -172,6 +172,9 @@ func assemble(rows []crawler.Row, meetingIDs map[int]string) ([]archive.MeetingR
 					SourceRevision: row.SourceRevision,
 					ProvenanceHash: row.ProvenanceHash,
 					Fidelity:       row.Fidelity,
+					WindowStart:    formatUTC(row.WindowStart),
+					WindowEnd:      formatUTC(row.WindowEnd),
+					Participants:   row.Participants,
 				})
 			}
 			contents = append(contents, content)
@@ -184,6 +187,13 @@ func assemble(rows []crawler.Row, meetingIDs map[int]string) ([]archive.MeetingR
 		return contents[i].ContentHash < contents[j].ContentHash
 	})
 	return meetings, contents, nil
+}
+
+func formatUTC(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339)
 }
 
 func calendarFields(meetingID string, rows []crawler.Row) (string, string) {

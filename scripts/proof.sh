@@ -83,16 +83,16 @@ assert_fixture_hashes_unchanged() {
 }
 
 build_binaries() {
-  log "building meet binary"
+  log "building meetcrawl binary"
   (
     cd "${REPO_ROOT}"
-    HOME="${BUILD_HOME}" GOWORK=off go build -o "${BINDIR}/meet" ./cmd/meet
+    HOME="${BUILD_HOME}" GOWORK=off go build -o "${BINDIR}/meetcrawl" ./cmd/meetcrawl
   ) >>"${PROOF_DIR}/build.log" 2>&1
 }
 
 run_doctor_after_init() {
   log "check: doctor after init"
-  "${BINDIR}/meet" --json doctor >>"${PROOF_DIR}/doctor.log" 2>&1
+  "${BINDIR}/meetcrawl" --json doctor >>"${PROOF_DIR}/doctor.log" 2>&1
   log "doctor ok"
 }
 
@@ -100,11 +100,11 @@ run_auth_no_network() {
   log "check: auth fails closed without oauth client (no network)"
   local auth_code=0 auth_out
   set +e
-  auth_out="$("${BINDIR}/meet" --json auth 2>&1)"
+  auth_out="$("${BINDIR}/meetcrawl" --json auth 2>&1)"
   auth_code=$?
   set -e
   echo "${auth_out}" >>"${PROOF_DIR}/auth.log"
-  [[ "${auth_code}" -ne 0 ]] || fail "meet auth exited 0 without oauth client"
+  [[ "${auth_code}" -ne 0 ]] || fail "meetcrawl auth exited 0 without oauth client"
   printf '%s' "${auth_out}" | grep -qi 'oauth' || fail "auth missing oauth client hint"
   log "auth fail-closed ok"
 }
@@ -119,82 +119,82 @@ run_registry_synthetic_test() {
 }
 
 run_sync_ingest() {
-  log "check 1: meet sync ingest counts"
-  "${BINDIR}/meet" init >>"${PROOF_DIR}/meet-init.log" 2>&1
+  log "check 1: meetcrawl sync ingest counts"
+  "${BINDIR}/meetcrawl" init >>"${PROOF_DIR}/meet-init.log" 2>&1
   run_doctor_after_init
   run_auth_no_network
   local whisp_out
-  whisp_out="$("${BINDIR}/meet" --json sync --source openwhispr --source-db "${WHISP_SUPPORTED_DB}" 2>>"${PROOF_DIR}/whisp-sync.log")"
+  whisp_out="$("${BINDIR}/meetcrawl" --json sync --source openwhispr --source-db "${WHISP_SUPPORTED_DB}" 2>>"${PROOF_DIR}/whisp-sync.log")"
   echo "${whisp_out}" >>"${PROOF_DIR}/whisp-sync.log"
   local whisp_artifacts
   whisp_artifacts="$(json_get result.artifacts "${whisp_out}")"
   [[ "${whisp_artifacts}" == "3" ]] || fail "openwhispr artifacts=${whisp_artifacts} want 3"
 
   local gmeet_out
-  gmeet_out="$("${BINDIR}/meet" --json sync --source gmeet --fixture "${GMEET_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/gmeet-sync.log")"
+  gmeet_out="$("${BINDIR}/meetcrawl" --json sync --source gmeet --fixture "${GMEET_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/gmeet-sync.log")"
   echo "${gmeet_out}" >>"${PROOF_DIR}/gmeet-sync.log"
   local gmeet_artifacts
   gmeet_artifacts="$(json_get result.artifacts "${gmeet_out}")"
   [[ "${gmeet_artifacts}" == "3" ]] || fail "gmeet artifacts=${gmeet_artifacts} want 3"
 
   local export_out
-  export_out="$("${BINDIR}/meet" --json sync --source export-file --fixture "${EXPORT_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/export-sync.log")"
+  export_out="$("${BINDIR}/meetcrawl" --json sync --source export-file --fixture "${EXPORT_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/export-sync.log")"
   echo "${export_out}" >>"${PROOF_DIR}/export-sync.log"
   local export_artifacts
   export_artifacts="$(json_get result.artifacts "${export_out}")"
   [[ "${export_artifacts}" == "4" ]] || fail "export-file artifacts=${export_artifacts} want 4"
 
   local grain_out
-  grain_out="$("${BINDIR}/meet" --json sync --source grain --fixture "${GRAIN_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/grain-sync.log")"
+  grain_out="$("${BINDIR}/meetcrawl" --json sync --source grain --fixture "${GRAIN_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/grain-sync.log")"
   echo "${grain_out}" >>"${PROOF_DIR}/grain-sync.log"
   local grain_artifacts
   grain_artifacts="$(json_get result.artifacts "${grain_out}")"
   [[ "${grain_artifacts}" == "1" ]] || fail "grain artifacts=${grain_artifacts} want 1"
 
   local granola_out
-  granola_out="$("${BINDIR}/meet" --json sync --source granola --fixture "${GRANOLA_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/granola-sync.log")"
+  granola_out="$("${BINDIR}/meetcrawl" --json sync --source granola --fixture "${GRANOLA_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/granola-sync.log")"
   echo "${granola_out}" >>"${PROOF_DIR}/granola-sync.log"
   local granola_artifacts
   granola_artifacts="$(json_get result.artifacts "${granola_out}")"
   [[ "${granola_artifacts}" == "1" ]] || fail "granola artifacts=${granola_artifacts} want 1"
 
   local fireflies_out
-  fireflies_out="$("${BINDIR}/meet" --json sync --source fireflies --fixture "${FIREFLIES_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/fireflies-sync.log")"
+  fireflies_out="$("${BINDIR}/meetcrawl" --json sync --source fireflies --fixture "${FIREFLIES_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/fireflies-sync.log")"
   echo "${fireflies_out}" >>"${PROOF_DIR}/fireflies-sync.log"
   local fireflies_artifacts
   fireflies_artifacts="$(json_get result.artifacts "${fireflies_out}")"
   [[ "${fireflies_artifacts}" == "1" ]] || fail "fireflies artifacts=${fireflies_artifacts} want 1"
 
   local fathom_out
-  fathom_out="$("${BINDIR}/meet" --json sync --source fathom --fixture "${FATHOM_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/fathom-sync.log")"
+  fathom_out="$("${BINDIR}/meetcrawl" --json sync --source fathom --fixture "${FATHOM_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/fathom-sync.log")"
   echo "${fathom_out}" >>"${PROOF_DIR}/fathom-sync.log"
   local fathom_artifacts
   fathom_artifacts="$(json_get result.artifacts "${fathom_out}")"
   [[ "${fathom_artifacts}" == "1" ]] || fail "fathom artifacts=${fathom_artifacts} want 1"
 
   local krisp_out
-  krisp_out="$("${BINDIR}/meet" --json sync --source krisp --fixture "${KRISP_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/krisp-sync.log")"
+  krisp_out="$("${BINDIR}/meetcrawl" --json sync --source krisp --fixture "${KRISP_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/krisp-sync.log")"
   echo "${krisp_out}" >>"${PROOF_DIR}/krisp-sync.log"
   local krisp_artifacts
   krisp_artifacts="$(json_get result.artifacts "${krisp_out}")"
   [[ "${krisp_artifacts}" == "1" ]] || fail "krisp artifacts=${krisp_artifacts} want 1"
 
   local circleback_out
-  circleback_out="$("${BINDIR}/meet" --json sync --source circleback --fixture "${CIRCLEBACK_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/circleback-sync.log")"
+  circleback_out="$("${BINDIR}/meetcrawl" --json sync --source circleback --fixture "${CIRCLEBACK_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/circleback-sync.log")"
   echo "${circleback_out}" >>"${PROOF_DIR}/circleback-sync.log"
   local circleback_artifacts
   circleback_artifacts="$(json_get result.artifacts "${circleback_out}")"
   [[ "${circleback_artifacts}" == "1" ]] || fail "circleback artifacts=${circleback_artifacts} want 1"
 
   local tldv_out
-  tldv_out="$("${BINDIR}/meet" --json sync --source tldv --fixture "${TLDV_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/tldv-sync.log")"
+  tldv_out="$("${BINDIR}/meetcrawl" --json sync --source tldv --fixture "${TLDV_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/tldv-sync.log")"
   echo "${tldv_out}" >>"${PROOF_DIR}/tldv-sync.log"
   local tldv_artifacts
   tldv_artifacts="$(json_get result.artifacts "${tldv_out}")"
   [[ "${tldv_artifacts}" == "1" ]] || fail "tldv artifacts=${tldv_artifacts} want 1"
 
   local pocket_out
-  pocket_out="$("${BINDIR}/meet" --json sync --source pocket --fixture "${POCKET_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/pocket-sync.log")"
+  pocket_out="$("${BINDIR}/meetcrawl" --json sync --source pocket --fixture "${POCKET_SUPPORTED_FIX}" 2>>"${PROOF_DIR}/pocket-sync.log")"
   echo "${pocket_out}" >>"${PROOF_DIR}/pocket-sync.log"
   local pocket_artifacts
   pocket_artifacts="$(json_get result.artifacts "${pocket_out}")"
@@ -222,7 +222,7 @@ run_index_checks() {
   log "check 2-3: index dedup, adhoc, pt-PT search"
   patch_meetcrawl_privacy
   local idx_out
-  idx_out="$("${BINDIR}/meet" --json index --calendar-fixture "${CALENDAR_FIX}" 2>>"${PROOF_DIR}/index.log")"
+  idx_out="$("${BINDIR}/meetcrawl" --json index --calendar-fixture "${CALENDAR_FIX}" 2>>"${PROOF_DIR}/index.log")"
   echo "${idx_out}" >>"${PROOF_DIR}/index.log"
   local meetings
   meetings="$(json_get result.meetings "${idx_out}")"
@@ -274,7 +274,7 @@ where cs.source in ('openwhispr','gmeet-gemini')
   log "calendar enrichment linked synthetic event"
 
   local search_out
-  search_out="$("${BINDIR}/meet" --json search reuniao 2>>"${PROOF_DIR}/search.log")"
+  search_out="$("${BINDIR}/meetcrawl" --json search reuniao 2>>"${PROOF_DIR}/search.log")"
   echo "${search_out}" >>"${PROOF_DIR}/search.log"
   SEARCH_JSON="${search_out}" python3 <<'PY' || fail "pt-PT search missed accented fixture text"
 import json, os
@@ -287,7 +287,7 @@ if "reuni" not in snip:
     raise SystemExit(2)
 PY
   local status_out
-  status_out="$("${BINDIR}/meet" --json status 2>>"${PROOF_DIR}/status.log")"
+  status_out="$("${BINDIR}/meetcrawl" --json status 2>>"${PROOF_DIR}/status.log")"
   echo "${status_out}" >>"${PROOF_DIR}/status.log"
   local status_meetings
   status_meetings="$(json_get result.meetings "${status_out}")"
@@ -299,7 +299,7 @@ run_mcp_check() {
   log "check 4: MCP stdio session"
   export PROOF_MCP_CFG="${MEETCRAWL_CFG}"
   export PROOF_MCP_READS="${READS_DB}"
-  export PROOF_MCP_BIN="${BINDIR}/meet"
+  export PROOF_MCP_BIN="${BINDIR}/meetcrawl"
   export PROOF_MCP_SHAREABLE_MEETING_ID
   PROOF_MCP_SHAREABLE_MEETING_ID="$(sqlite3 "${INDEX_DB}" "select meeting_id from meetings where meeting_id like 'adhoc:%' limit 1;")"
   [[ -n "${PROOF_MCP_SHAREABLE_MEETING_ID}" ]] || fail "MCP proof missing shareable adhoc meeting_id"
@@ -318,7 +318,7 @@ run_rebuild_hash() {
     HOME="${BUILD_HOME}" GOWORK=off go run ./scripts/proof_index_hash.go "${INDEX_DB}"
   )"
   rm -f "${INDEX_DB}"
-  "${BINDIR}/meet" --json index --calendar-fixture "${CALENDAR_FIX}" >>"${PROOF_DIR}/reindex.log" 2>&1
+  "${BINDIR}/meetcrawl" --json index --calendar-fixture "${CALENDAR_FIX}" >>"${PROOF_DIR}/reindex.log" 2>&1
   hash2="$(
     cd "${REPO_ROOT}"
     HOME="${BUILD_HOME}" GOWORK=off go run ./scripts/proof_index_hash.go "${INDEX_DB}"
@@ -331,7 +331,7 @@ run_rebuild_hash() {
 run_metadata_deps_check() {
   log "check 6: metadata control.v1 and no crawlkit/remote deps"
   local meta_out schema
-  meta_out="$("${BINDIR}/meet" --json metadata 2>>"${PROOF_DIR}/metadata.log")"
+  meta_out="$("${BINDIR}/meetcrawl" --json metadata 2>>"${PROOF_DIR}/metadata.log")"
   echo "${meta_out}" >>"${PROOF_DIR}/metadata.log"
   schema="$(json_get schema_version "${meta_out}")"
   [[ "${schema}" == "crawlkit.control.v1" ]] || fail "metadata schema_version=${schema} want crawlkit.control.v1"
@@ -349,11 +349,11 @@ run_unsupported_schema() {
   local iso_home whisp_db gmeet_db export_db
 
   iso_home="$(mktemp -d)"
-  HOME="${iso_home}" "${BINDIR}/meet" init >>"${PROOF_DIR}/whisp-unsupported-init.log" 2>&1
+  HOME="${iso_home}" "${BINDIR}/meetcrawl" init >>"${PROOF_DIR}/whisp-unsupported-init.log" 2>&1
   whisp_db="$(data_root "${iso_home}")/whispcrawl/whispcrawl.db"
   local whisp_code=0 whisp_out
   set +e
-  whisp_out="$(HOME="${iso_home}" "${BINDIR}/meet" --json sync --source openwhispr --source-db "${WHISP_UNSUPPORTED_DB}" 2>&1)"
+  whisp_out="$(HOME="${iso_home}" "${BINDIR}/meetcrawl" --json sync --source openwhispr --source-db "${WHISP_UNSUPPORTED_DB}" 2>&1)"
   whisp_code=$?
   set -e
   echo "${whisp_out}" >>"${PROOF_DIR}/whisp-unsupported.log"
@@ -362,11 +362,11 @@ run_unsupported_schema() {
   [[ ! -f "${whisp_db}" ]] || fail "openwhispr wrote archive on unsupported schema"
 
   iso_home="$(mktemp -d)"
-  HOME="${iso_home}" "${BINDIR}/meet" init >>"${PROOF_DIR}/gmeet-unsupported-init.log" 2>&1
+  HOME="${iso_home}" "${BINDIR}/meetcrawl" init >>"${PROOF_DIR}/gmeet-unsupported-init.log" 2>&1
   gmeet_db="$(data_root "${iso_home}")/gmeetcrawl/gmeetcrawl.db"
   local gmeet_code=0 gmeet_out
   set +e
-  gmeet_out="$(HOME="${iso_home}" "${BINDIR}/meet" --json sync --source gmeet --fixture "${GMEET_UNSUPPORTED_FIX}" 2>&1)"
+  gmeet_out="$(HOME="${iso_home}" "${BINDIR}/meetcrawl" --json sync --source gmeet --fixture "${GMEET_UNSUPPORTED_FIX}" 2>&1)"
   gmeet_code=$?
   set -e
   echo "${gmeet_out}" >>"${PROOF_DIR}/gmeet-unsupported.log"
@@ -375,11 +375,11 @@ run_unsupported_schema() {
   [[ ! -f "${gmeet_db}" ]] || fail "gmeet wrote archive on unsupported schema"
 
   iso_home="$(mktemp -d)"
-  HOME="${iso_home}" "${BINDIR}/meet" init >>"${PROOF_DIR}/export-unsupported-init.log" 2>&1
+  HOME="${iso_home}" "${BINDIR}/meetcrawl" init >>"${PROOF_DIR}/export-unsupported-init.log" 2>&1
   export_db="$(data_root "${iso_home}")/exportcrawl/exportcrawl.db"
   local export_code=0 export_out
   set +e
-  export_out="$(HOME="${iso_home}" "${BINDIR}/meet" --json sync --source export-file --fixture "${EXPORT_UNSUPPORTED_FIX}" 2>&1)"
+  export_out="$(HOME="${iso_home}" "${BINDIR}/meetcrawl" --json sync --source export-file --fixture "${EXPORT_UNSUPPORTED_FIX}" 2>&1)"
   export_code=$?
   set -e
   echo "${export_out}" >>"${PROOF_DIR}/export-unsupported.log"
@@ -396,7 +396,7 @@ root = pathlib.Path("${PROOF_DIR}")
 summary = {
     "ok": True,
     "home": "${PROOF_HOME}",
-    "binary": "meet",
+    "binary": "meetcrawl",
     "checks": [
         "sync_ingest",
         "index_dedup_adhoc",

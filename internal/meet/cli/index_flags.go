@@ -5,7 +5,7 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/index/build"
 )
 
-// parseArchiveOverrides maps meet index CLI flags to registered source archive paths.
+// parseArchiveOverrides maps meetcrawl index CLI flags to registered source archive paths.
 // Legacy crawler binary names (--whispcrawl-db, etc.) remain as migration aliases (docs/SPEC.md §3).
 func parseArchiveOverrides(args []string) map[registry.Name]string {
 	out := map[registry.Name]string{}

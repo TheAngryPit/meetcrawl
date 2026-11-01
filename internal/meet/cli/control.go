@@ -13,22 +13,22 @@ import (
 func ControlManifest(configPath string, cfg mconfig.Config) control.Manifest {
 	_ = configPath
 	_ = cfg
-	manifest := control.NewManifest("meet", "Meetings Index", "meet")
+	manifest := control.NewManifest("meetcrawl", "Meetings Index", "meetcrawl")
 	manifest.Description = "Local-first meetings index with pluggable source adapters."
 	manifest.Paths = portableManifestPaths()
 	manifest.Capabilities = []string{"metadata", "status", "doctor", "sync", "index", "search"}
 	manifest.Commands = map[string]control.Command{
-		"metadata": {Title: "Metadata", Argv: []string{"meet", "metadata", "--json"}, JSON: true},
-		"status":   {Title: "Status", Argv: []string{"meet", "status", "--json"}, JSON: true},
-		"doctor":   {Title: "Doctor", Argv: []string{"meet", "doctor", "--json"}, JSON: true},
-		"index":    {Title: "Index", Argv: []string{"meet", "index", "--json"}, JSON: true, Mutates: true},
-		"sync":     {Title: "Sync", Argv: []string{"meet", "sync", "--json", "--source", syncAllSource}, JSON: true, Mutates: true},
+		"metadata": {Title: "Metadata", Argv: []string{"meetcrawl", "metadata", "--json"}, JSON: true},
+		"status":   {Title: "Status", Argv: []string{"meetcrawl", "status", "--json"}, JSON: true},
+		"doctor":   {Title: "Doctor", Argv: []string{"meetcrawl", "doctor", "--json"}, JSON: true},
+		"index":    {Title: "Index", Argv: []string{"meetcrawl", "index", "--json"}, JSON: true, Mutates: true},
+		"sync":     {Title: "Sync", Argv: []string{"meetcrawl", "sync", "--json", "--source", syncAllSource}, JSON: true, Mutates: true},
 	}
 	for _, name := range registry.Names() {
 		key := syncCommandKey(name)
 		manifest.Commands[key] = control.Command{
 			Title:   "Sync " + string(name),
-			Argv:    []string{"meet", "sync", "--json", "--source", string(name)},
+			Argv:    []string{"meetcrawl", "sync", "--json", "--source", string(name)},
 			JSON:    true,
 			Mutates: true,
 		}

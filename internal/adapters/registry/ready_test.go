@@ -76,8 +76,8 @@ func TestTokenReadySeparatesAbsentFromUnreadable(t *testing.T) {
 	dir := t.TempDir()
 
 	absent := tokenReady(filepath.Join(dir, "none.json"))
-	if absent.Ready || !strings.Contains(absent.Reason, "meet auth") {
-		t.Fatalf("absent token = %+v, want skipped with a meet auth hint", absent)
+	if absent.Ready || !strings.Contains(absent.Reason, "meetcrawl auth") {
+		t.Fatalf("absent token = %+v, want skipped with a meetcrawl auth hint", absent)
 	}
 
 	broken := filepath.Join(dir, "broken.json")
@@ -85,7 +85,7 @@ func TestTokenReadySeparatesAbsentFromUnreadable(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := tokenReady(broken)
-	if got.Ready || !strings.Contains(got.Reason, "unreadable") || strings.Contains(got.Reason, "meet auth") {
+	if got.Ready || !strings.Contains(got.Reason, "unreadable") || strings.Contains(got.Reason, "meetcrawl auth") {
 		t.Fatalf("malformed token = %+v, want skipped as unreadable with the cause", got)
 	}
 

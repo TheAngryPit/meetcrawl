@@ -31,12 +31,12 @@ import (
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
 )
 
-// Name is the meet sync --source flag value for a registered adapter.
+// Name is the meetcrawl sync --source flag value for a registered adapter.
 type Name string
 
 func (n Name) String() string { return string(n) }
 
-// SyncOptions are per-invocation flags for meet sync.
+// SyncOptions are per-invocation flags for meetcrawl sync.
 type SyncOptions struct {
 	SourceDB   string
 	FixtureDir string
@@ -389,7 +389,7 @@ func LocalOnlyScopes() []string {
 	for _, name := range regOrder {
 		scopes = append(scopes, byName[name].Scope)
 	}
-	scopes = append(scopes, "meet index SQLite archive")
+	scopes = append(scopes, "meetcrawl index SQLite archive")
 	return scopes
 }
 
@@ -408,13 +408,13 @@ func EnsureSourceDirs(name Name, cfg ConfigView) error {
 	return nil
 }
 
-// SourceArchive is one registered adapter archive passed to meet index.
+// SourceArchive is one registered adapter archive passed to meetcrawl index.
 type SourceArchive struct {
 	Kind source.Kind
 	Path string
 }
 
-// IndexArchives builds the source list for meet index from registrations and optional path overrides.
+// IndexArchives builds the source list for meetcrawl index from registrations and optional path overrides.
 func IndexArchives(cfg ConfigView, overrides map[Name]string) []SourceArchive {
 	out := make([]SourceArchive, 0, len(regOrder))
 	for _, name := range regOrder {

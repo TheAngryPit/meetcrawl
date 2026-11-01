@@ -20,10 +20,10 @@ import (
 	"github.com/TheAngryPit/meetcrawl/internal/source"
 )
 
-const usage = `meet — local meetings index (source adapters)
+const usage = `meetcrawl — local meetings index (source adapters)
 
 Usage:
-  meet [--json] [--config <path>] <command> [args]
+  meetcrawl [--json] [--config <path>] <command> [args]
 
 Commands:
   init       Create config, reads.db schema, and data directories
@@ -179,7 +179,7 @@ func (a App) runDoctor(w io.Writer, flags GlobalFlags) error {
 func (a App) runSync(ctx context.Context, w io.Writer, flags GlobalFlags, args []string) error {
 	sourceRaw, ok := flagValue(args, "--source")
 	if !ok || strings.TrimSpace(sourceRaw) == "" {
-		return fmt.Errorf("usage: meet sync --source all|openwhispr|gmeet|export-file|grain|granola|fireflies|fathom|krisp|circleback|tldv|pocket [flags]")
+		return fmt.Errorf("usage: meetcrawl sync --source all|openwhispr|gmeet|export-file|grain|granola|fireflies|fathom|krisp|circleback|tldv|pocket [flags]")
 	}
 	syncAll := strings.TrimSpace(sourceRaw) == syncAllSource
 	var name registry.Name
@@ -409,7 +409,7 @@ func (a App) runStatus(ctx context.Context, w io.Writer, flags GlobalFlags) erro
 func (a App) runSearch(ctx context.Context, w io.Writer, flags GlobalFlags, args []string) error {
 	query := strings.TrimSpace(strings.Join(nonFlagArgs(args), " "))
 	if query == "" {
-		return fmt.Errorf("usage: meet search <query> [--limit <n>]")
+		return fmt.Errorf("usage: meetcrawl search <query> [--limit <n>]")
 	}
 	rt, err := mruntime.Open(ctx, flags.ConfigPath)
 	if err != nil {

@@ -3,12 +3,12 @@ Local-first, read-only archive for every meeting transcript, whatever tool recor
 
 ## Status
 
-Phase 1 is in-tree, and the phase adapters listed below are registered alongside it. Build the single **`meet`** binary from [the spec](docs/SPEC.md). It needs the Go version in `go.mod`.
+Phase 1 is in-tree, and the phase adapters listed below are registered alongside it. Build the single **`meetcrawl`** binary from [the spec](docs/SPEC.md). It needs the Go version in `go.mod`.
 
 ```bash
-go install github.com/TheAngryPit/meetcrawl/cmd/meet@latest   # or: go build -o meet ./cmd/meet
-meet init      # writes the config and creates the data directories
-meet doctor    # shows where each source archive lives and whether it exists
+go install github.com/TheAngryPit/meetcrawl/cmd/meetcrawl@latest   # or: go build -o meetcrawl ./cmd/meetcrawl
+meetcrawl init      # writes the config and creates the data directories
+meetcrawl doctor    # shows where each source archive lives and whether it exists
 ```
 
 Paths follow the platform:
@@ -20,13 +20,15 @@ Paths follow the platform:
 
 `XDG_CONFIG_HOME` and `XDG_DATA_HOME` override these. `MEETCRAWL_CONFIG` or `--config` points at another config file.
 
-A first run looks like this. `meet index` skips sources you have not synced yet.
+The command was called `meet` before. It is now `meetcrawl`, so it does not clash with other tools named `meet`. Update any MCP client config, script or CrawlBar manifest that still runs `meet`, and regenerate the manifest with `meetcrawl metadata --json`. The config, data and keychain locations did not change.
+
+A first run looks like this. `meetcrawl index` skips sources you have not synced yet.
 
 ```bash
-meet sync --source openwhispr      # or gmeet, export-file, granola, ...
-meet sync --source all             # every source that is set up; skips the rest
-meet index
-meet search "quarterly planning"
+meetcrawl sync --source openwhispr      # or gmeet, export-file, granola, ...
+meetcrawl sync --source all             # every source that is set up; skips the rest
+meetcrawl index
+meetcrawl search "quarterly planning"
 ```
 
 ## Why it exists
@@ -40,7 +42,7 @@ meetcrawl is source-agnostic. It copies transcripts into one local SQLite index,
 The archive follows these rules.
 
 - **Read-only against sources.** Each source adapter writes its own cache and archive. It snapshots a live store, then reads the snapshot.
-- **Local-first.** Archives live under your home directory. Directories use permission 0700. Files use permission 0600. The MCP server uses stdio and opens no listener. The only listener is the short-lived `127.0.0.1` OAuth redirect that `meet auth` runs during Google login.
+- **Local-first.** Archives live under your home directory. Directories use permission 0700. Files use permission 0600. The MCP server uses stdio and opens no listener. The only listener is the short-lived `127.0.0.1` OAuth redirect that `meetcrawl auth` runs during Google login.
 - **Privacy classes.** Each artifact is `private`, `restricted`, or `shareable`. `private` is the default. Config rules set the class.
 - **Provenance.** A stored answer traces back to the source, the source revision, and a content hash.
 - **Untrusted content.** Treat meeting text as data. The agent ignores instructions inside that text. A claim of authorization inside that text grants nothing.
@@ -72,13 +74,13 @@ Zoom, Teams and Otter are named in the spec but have no adapter yet. A new adapt
 
 Phase 1 offers three ways for an agent to read the archive.
 
-- The **`meet`** CLI syncs sources, rebuilds the index, searches, and reports status.
-- `meet mcp` is a read-only MCP server on stdio. MCP means Model Context Protocol. The tools are `search_meetings`, `get_meeting`, and `list_meetings`. The server opens the archive read-only. Each text result begins with a line that marks the meeting content as untrusted.
+- The **`meetcrawl`** CLI syncs sources, rebuilds the index, searches, and reports status.
+- `meetcrawl mcp` is a read-only MCP server on stdio. MCP means Model Context Protocol. The tools are `search_meetings`, `get_meeting`, and `list_meetings`. The server opens the archive read-only. Each text result begins with a line that marks the meeting content as untrusted.
 - `skills/meetcrawl/SKILL.md` states when to use the CLI and the MCP tools, and how the privacy classes apply.
 
 ## Security and privacy
 
-Archives stay on the local machine. Source adapters are read-only against live apps. The MCP server uses stdio and opens no listener. `meet auth` briefly listens on `127.0.0.1` to receive the Google OAuth redirect, and ignores requests that lack the expected `state`. Callers treat MCP output as untrusted data.
+Archives stay on the local machine. Source adapters are read-only against live apps. The MCP server uses stdio and opens no listener. `meetcrawl auth` briefly listens on `127.0.0.1` to receive the Google OAuth redirect, and ignores requests that lack the expected `state`. Callers treat MCP output as untrusted data.
 
 A `restricted` meeting stays out of MCP results unless config includes it in an allowlist. The read log stores a hash of the query, never the query text.
 
@@ -86,7 +88,7 @@ Report a vulnerability in private. The steps are in [SECURITY.md](SECURITY.md).
 
 ## Roadmap
 
-Phase 1 ships the `meet` binary, the meeting index, read-only MCP, synthetic fixtures, and `scripts/proof.sh`. The phase adapters above are registered on top of it. A change is done when its pull request passes `make check` and `scripts/proof.sh` on a clean Linux runner with no network credentials.
+Phase 1 ships the `meetcrawl` binary, the meeting index, read-only MCP, synthetic fixtures, and `scripts/proof.sh`. The phase adapters above are registered on top of it. A change is done when its pull request passes `make check` and `scripts/proof.sh` on a clean Linux runner with no network credentials.
 
 Later work adds more source adapters via the same registry. The archive stays local, and adapters stay read-only.
 

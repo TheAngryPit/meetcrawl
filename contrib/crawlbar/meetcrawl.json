@@ -41,6 +41,18 @@
             ],
             "json": true
         },
+        "sync": {
+            "title": "Sync",
+            "argv": [
+                "meet",
+                "sync",
+                "--json",
+                "--source",
+                "all"
+            ],
+            "json": true,
+            "mutates": true
+        },
         "status": {
             "title": "Status",
             "argv": [

@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/TheAngryPit/meetcrawl/internal/adapters/registry"
 	circlebackconfig "github.com/TheAngryPit/meetcrawl/internal/circleback/config"
 	econfig "github.com/TheAngryPit/meetcrawl/internal/exportcrawl/config"
 	fathomconfig "github.com/TheAngryPit/meetcrawl/internal/fathom/config"
@@ -731,12 +730,7 @@ func EnsureDirs(cfg Config) error {
 			return fmt.Errorf("create dir %s: %w", dir, err)
 		}
 	}
-	return EnsureSourceDirs(cfg)
-}
-
-// EnsureSourceDirs creates cache/log dirs for each registered source adapter.
-func EnsureSourceDirs(cfg Config) error {
-	return registry.EnsureSourceArchives(ConfigView(cfg))
+	return nil
 }
 
 // ConfigView adapts Config for the adapter registry without an import cycle.

@@ -358,16 +358,17 @@ func LocalOnlyScopes() []string {
 	return scopes
 }
 
-// EnsureSourceArchives creates cache/log dirs for every registered adapter.
-func EnsureSourceArchives(cfg ConfigView) error {
-	for _, name := range regOrder {
-		e := byName[name]
-		if e.EnsureDirs == nil {
-			continue
-		}
-		if err := e.EnsureDirs(cfg); err != nil {
-			return fmt.Errorf("%s: %w", name, err)
-		}
+// EnsureSourceDirs creates the archive, cache and log dirs for one adapter.
+func EnsureSourceDirs(name Name, cfg ConfigView) error {
+	e, ok := byName[name]
+	if !ok {
+		return fmt.Errorf("registry: unknown source %q", name)
+	}
+	if e.EnsureDirs == nil {
+		return nil
+	}
+	if err := e.EnsureDirs(cfg); err != nil {
+		return fmt.Errorf("%s: %w", name, err)
 	}
 	return nil
 }

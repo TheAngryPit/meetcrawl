@@ -189,7 +189,7 @@ func (a App) runSync(ctx context.Context, w io.Writer, flags GlobalFlags, args [
 	if err != nil {
 		return err
 	}
-	if err := mconfig.EnsureSourceDirs(cfg); err != nil {
+	if err := registry.EnsureSourceDirs(name, mconfig.ConfigView(cfg)); err != nil {
 		return err
 	}
 	opts := registry.SyncOptions{

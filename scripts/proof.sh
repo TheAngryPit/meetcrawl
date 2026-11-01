@@ -10,9 +10,19 @@ export HOME="${PROOF_HOME}"
 export GOMODCACHE="${BUILD_HOME}/go/pkg/mod"
 export GOPATH="${BUILD_HOME}/go"
 
-MEETCRAWL_CFG="${HOME}/.config/meetcrawl/config.toml"
-INDEX_DB="${HOME}/.local/share/meetcrawl/meetcrawl.db"
-READS_DB="${HOME}/.local/share/meetcrawl/reads.db"
+# crawlkit resolves config/data dirs per OS (XDG on Linux, Application Support on macOS).
+unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_CACHE_HOME XDG_STATE_HOME
+case "$(uname -s)" in
+  Darwin) CONFIG_ROOT_REL="Library/Application Support"; DATA_ROOT_REL="Library/Application Support" ;;
+  *) CONFIG_ROOT_REL=".config"; DATA_ROOT_REL=".local/share" ;;
+esac
+
+# data_root <home>: base directory that holds <app>/<app>.db archives.
+data_root() { printf '%s/%s' "$1" "${DATA_ROOT_REL}"; }
+
+MEETCRAWL_CFG="${HOME}/${CONFIG_ROOT_REL}/meetcrawl/config.toml"
+INDEX_DB="$(data_root "${HOME}")/meetcrawl/meetcrawl.db"
+READS_DB="$(data_root "${HOME}")/meetcrawl/reads.db"
 
 WHISP_SUPPORTED_DB="${REPO_ROOT}/testdata/fixtures/openwhispr/supported/transcriptions.db"
 WHISP_UNSUPPORTED_DB="${REPO_ROOT}/testdata/fixtures/openwhispr/unsupported/transcriptions.db"
@@ -58,7 +68,9 @@ PY
 
 fixture_sha256_file="${PROOF_DIR}/fixtures.sha256"
 record_fixture_hashes() {
-  find "${REPO_ROOT}/testdata/fixtures" -type f ! -name '.gitkeep' | sort | xargs sha256sum >"$1"
+  local sha=(sha256sum)
+  command -v sha256sum >/dev/null 2>&1 || sha=(shasum -a 256)
+  find "${REPO_ROOT}/testdata/fixtures" -type f ! -name '.gitkeep' -print0 | sort -z | xargs -0 "${sha[@]}" >"$1"
 }
 
 assert_fixture_hashes_unchanged() {
@@ -338,7 +350,7 @@ run_unsupported_schema() {
 
   iso_home="$(mktemp -d)"
   HOME="${iso_home}" "${BINDIR}/meet" init >>"${PROOF_DIR}/whisp-unsupported-init.log" 2>&1
-  whisp_db="${iso_home}/.local/share/whispcrawl/whispcrawl.db"
+  whisp_db="$(data_root "${iso_home}")/whispcrawl/whispcrawl.db"
   local whisp_code=0 whisp_out
   set +e
   whisp_out="$(HOME="${iso_home}" "${BINDIR}/meet" --json sync --source openwhispr --source-db "${WHISP_UNSUPPORTED_DB}" 2>&1)"
@@ -351,7 +363,7 @@ run_unsupported_schema() {
 
   iso_home="$(mktemp -d)"
   HOME="${iso_home}" "${BINDIR}/meet" init >>"${PROOF_DIR}/gmeet-unsupported-init.log" 2>&1
-  gmeet_db="${iso_home}/.local/share/gmeetcrawl/gmeetcrawl.db"
+  gmeet_db="$(data_root "${iso_home}")/gmeetcrawl/gmeetcrawl.db"
   local gmeet_code=0 gmeet_out
   set +e
   gmeet_out="$(HOME="${iso_home}" "${BINDIR}/meet" --json sync --source gmeet --fixture "${GMEET_UNSUPPORTED_FIX}" 2>&1)"
@@ -364,7 +376,7 @@ run_unsupported_schema() {
 
   iso_home="$(mktemp -d)"
   HOME="${iso_home}" "${BINDIR}/meet" init >>"${PROOF_DIR}/export-unsupported-init.log" 2>&1
-  export_db="${iso_home}/.local/share/exportcrawl/exportcrawl.db"
+  export_db="$(data_root "${iso_home}")/exportcrawl/exportcrawl.db"
   local export_code=0 export_out
   set +e
   export_out="$(HOME="${iso_home}" "${BINDIR}/meet" --json sync --source export-file --fixture "${EXPORT_UNSUPPORTED_FIX}" 2>&1)"

@@ -2,7 +2,10 @@ package build
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -33,13 +36,20 @@ type Result struct {
 	Meetings    int `json:"meetings"`
 	Contents    int `json:"contents"`
 	SourceLinks int `json:"source_links"`
+	// SkippedSources lists archive paths that do not exist yet (source never synced).
+	SkippedSources []string `json:"skipped_sources,omitempty"`
 }
 
 func Run(ctx context.Context, opts Options) (Result, error) {
 	var rows []crawler.Row
+	var skipped []string
 	for _, src := range opts.Sources {
 		if !registry.RegisteredKind(src.Kind) {
 			return Result{}, fmt.Errorf("index: unregistered source kind %q", src.Kind)
+		}
+		if _, err := os.Stat(src.Path); errors.Is(err, fs.ErrNotExist) {
+			skipped = append(skipped, src.Path)
+			continue
 		}
 		loaded, err := crawler.LoadArtifacts(ctx, src.Path, src.Kind)
 		if err != nil {
@@ -91,6 +101,8 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 		Meetings:    len(meetings),
 		Contents:    len(contents),
 		SourceLinks: sourceLinks,
+
+		SkippedSources: skipped,
 	}, nil
 }
 

@@ -112,21 +112,52 @@ func EnsureDirs(cfg Config) error {
 	return nil
 }
 
+// DefaultOpenWhisprDB returns the first existing OpenWhispr database, or the
+// platform's usual app-data location when none exists yet.
 func DefaultOpenWhisprDB() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
-	candidates := []string{
-		filepath.Join(home, ".config", "OpenWhispr", "transcriptions.db"),
-		filepath.Join(home, ".config", "openwhispr", "transcriptions.db"),
-	}
+	candidates := openWhisprCandidates(runtime.GOOS, home, os.Getenv("XDG_CONFIG_HOME"))
 	for _, path := range candidates {
 		if _, err := os.Stat(path); err == nil {
 			return path
 		}
 	}
 	return candidates[0]
+}
+
+// openWhisprCandidates lists likely transcriptions.db paths, native location first.
+func openWhisprCandidates(goos, home, xdgConfigHome string) []string {
+	var dirs []string
+	if goos == "darwin" {
+		dirs = append(dirs, filepath.Join(home, "Library", "Application Support"))
+	}
+	if filepath.IsAbs(xdgConfigHome) {
+		dirs = append(dirs, xdgConfigHome)
+	}
+	dirs = append(dirs, filepath.Join(home, ".config"))
+	var out []string
+	for _, dir := range dedupe(dirs) {
+		out = append(out,
+			filepath.Join(dir, "OpenWhispr", "transcriptions.db"),
+			filepath.Join(dir, "openwhispr", "transcriptions.db"),
+		)
+	}
+	return out
+}
+
+func dedupe(in []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, v := range in {
+		if !seen[v] {
+			seen[v] = true
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 func MarshalPreview(cfg Config) ([]byte, error) {

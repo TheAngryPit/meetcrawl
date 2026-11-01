@@ -40,7 +40,8 @@ Commands:
 
 Global flags:
   --json       JSON output (place before the command)
-  --config     Path to config.toml (default ~/.config/meetcrawl/config.toml)
+  --config     Path to config.toml (default: ~/.config/meetcrawl/config.toml on Linux,
+               ~/Library/Application Support/meetcrawl/config.toml on macOS)
   --version    Print version and exit
 `
 
@@ -299,6 +300,12 @@ func (a App) runIndex(ctx context.Context, w io.Writer, flags GlobalFlags, args 
 	printKV(w, "contents", result.Contents)
 	printKV(w, "source_links", result.SourceLinks)
 	printKV(w, "database", cfg.DBPath)
+	for _, path := range result.SkippedSources {
+		if a.Stderr == nil {
+			break
+		}
+		fmt.Fprintf(a.Stderr, "skipped (not synced yet): %s\n", path)
+	}
 	return nil
 }
 

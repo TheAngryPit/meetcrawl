@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help test test-race vet tidy tidy-check fmt verify-drive-test check
+.PHONY: help test test-race vet tidy tidy-check fmt hygiene verify-drive-test check
 
 help:
 	@printf '%s\n' \
@@ -12,7 +12,8 @@ help:
 		'  tidy        Tidy go.mod and go.sum.' \
 		'  tidy-check  Fail if go.mod or go.sum need tidying.' \
 		'  fmt         Fail if any file needs gofmt.' \
-		'  check       Run tidy, fmt, vet, unit tests, and race tests (GOWORK=off).'
+		'  hygiene     Fail on missing docs, tracked secrets or forbidden files.' \
+		'  check       Run tidy, fmt, hygiene, vet, unit tests, and race tests (GOWORK=off).'
 
 test:
 	GOWORK=off go test ./...
@@ -34,7 +35,10 @@ fmt:
 	unformatted="$$(gofmt -l .)"; \
 	if [ -n "$$unformatted" ]; then echo "$$unformatted"; exit 1; fi
 
+hygiene:
+	bash scripts/hygiene.sh
+
 verify-drive-test:
 	bash .cursor/skills/verify-meetcrawl/bin/test_drive_pipeline.sh
 
-check: tidy-check fmt vet test test-race verify-drive-test
+check: tidy-check fmt hygiene vet test test-race verify-drive-test

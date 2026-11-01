@@ -134,15 +134,16 @@ func loginViaLoopback(ctx context.Context, cfg *oauth2.Config, state, verifier s
 				return
 			}
 			q := r.URL.Query()
+			// A request without the expected state did not come from our
+			// authorization flow. Reject it but keep waiting, so a stray local
+			// request cannot abort the login.
 			gotState := q.Get("state")
 			if gotState == "" {
 				http.Error(w, "missing state", http.StatusBadRequest)
-				deliver(result{err: fmt.Errorf("oauth redirect missing state")})
 				return
 			}
 			if !oauthStateMatches(gotState, state) {
 				http.Error(w, "state mismatch", http.StatusBadRequest)
-				deliver(result{err: fmt.Errorf("oauth state mismatch")})
 				return
 			}
 			if errMsg := q.Get("error"); errMsg != "" {

@@ -37,54 +37,6 @@ type callbackInfo struct {
 	authURL  string
 }
 
-func runLoopbackLogin(t *testing.T, cfg *oauth2.Config, store oauth.TokenStore, ex *fakeExchanger, mutate func(q url.Values, state string)) (oauth.LoginResult, error) {
-	t.Helper()
-	infoCh := make(chan callbackInfo, 1)
-	resultCh := make(chan struct {
-		res oauth.LoginResult
-		err error
-	}, 1)
-	go func() {
-		res, err := oauth.Login(context.Background(), cfg, store, oauth.LoginOptions{
-			Exchanger:    ex,
-			AuthCodeWait: 5 * time.Second,
-			Out:          io.Discard,
-			OpenBrowser: func(authURL string) error {
-				parsed, err := url.Parse(authURL)
-				if err != nil {
-					return err
-				}
-				infoCh <- callbackInfo{
-					redirect: cfg.RedirectURL,
-					state:    parsed.Query().Get("state"),
-					authURL:  authURL,
-				}
-				return nil
-			},
-		})
-		resultCh <- struct {
-			res oauth.LoginResult
-			err error
-		}{res, err}
-	}()
-	info := <-infoCh
-	time.Sleep(30 * time.Millisecond)
-	u, err := url.Parse(info.redirect)
-	if err != nil {
-		return oauth.LoginResult{}, err
-	}
-	q := u.Query()
-	mutate(q, info.state)
-	u.RawQuery = q.Encode()
-	resp, err := http.Get(u.String())
-	if err != nil {
-		return oauth.LoginResult{}, err
-	}
-	resp.Body.Close()
-	out := <-resultCh
-	return out.res, out.err
-}
-
 func TestLoginLoopbackPKCEAndEphemeralPort(t *testing.T) {
 	t.Parallel()
 	cfg := &oauth2.Config{
@@ -161,7 +113,7 @@ func TestLoginLoopbackPKCEAndEphemeralPort(t *testing.T) {
 	}
 }
 
-func TestLoginMissingStateRejected(t *testing.T) {
+func TestLoginIgnoresRequestsWithoutValidState(t *testing.T) {
 	t.Parallel()
 	cfg := &oauth2.Config{
 		ClientID:    "synthetic-client",
@@ -169,28 +121,59 @@ func TestLoginMissingStateRejected(t *testing.T) {
 		Endpoint:    oauth2.Endpoint{AuthURL: "https://example.test/auth", TokenURL: "https://example.test/token"},
 	}
 	store := oauth.TokenStore{FilePath: t.TempDir() + "/token.json", KeyringEnabled: false}
-	_, err := runLoopbackLogin(t, cfg, store, &fakeExchanger{wantCode: "x"}, func(q url.Values, _ string) {
+	ex := &fakeExchanger{wantCode: "synthetic-code"}
+	infoCh := make(chan callbackInfo, 1)
+	resultCh := make(chan error, 1)
+	go func() {
+		_, err := oauth.Login(context.Background(), cfg, store, oauth.LoginOptions{
+			Exchanger:    ex,
+			AuthCodeWait: 5 * time.Second,
+			Out:          io.Discard,
+			OpenBrowser: func(authURL string) error {
+				parsed, _ := url.Parse(authURL)
+				infoCh <- callbackInfo{redirect: cfg.RedirectURL, state: parsed.Query().Get("state")}
+				return nil
+			},
+		})
+		resultCh <- err
+	}()
+	info := <-infoCh
+	time.Sleep(30 * time.Millisecond)
+	get := func(state string) int {
+		t.Helper()
+		u, err := url.Parse(info.redirect)
+		if err != nil {
+			t.Fatal(err)
+		}
+		q := u.Query()
 		q.Set("code", "synthetic-code")
-	})
-	if err == nil {
-		t.Fatal("expected missing state error")
+		if state != "" {
+			q.Set("state", state)
+		}
+		u.RawQuery = q.Encode()
+		resp, err := http.Get(u.String())
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		return resp.StatusCode
 	}
-}
-
-func TestLoginWrongStateRejected(t *testing.T) {
-	t.Parallel()
-	cfg := &oauth2.Config{
-		ClientID:    "synthetic-client",
-		RedirectURL: "http://localhost",
-		Endpoint:    oauth2.Endpoint{AuthURL: "https://example.test/auth", TokenURL: "https://example.test/token"},
+	if got := get(""); got != http.StatusBadRequest {
+		t.Fatalf("missing state status = %d, want 400", got)
 	}
-	store := oauth.TokenStore{FilePath: t.TempDir() + "/token.json", KeyringEnabled: false}
-	_, err := runLoopbackLogin(t, cfg, store, &fakeExchanger{wantCode: "x"}, func(q url.Values, _ string) {
-		q.Set("code", "synthetic-code")
-		q.Set("state", "not-the-random-state")
-	})
-	if err == nil {
-		t.Fatal("expected wrong state error")
+	if got := get("not-the-random-state"); got != http.StatusBadRequest {
+		t.Fatalf("wrong state status = %d, want 400", got)
+	}
+	select {
+	case err := <-resultCh:
+		t.Fatalf("login ended after a stray request: %v", err)
+	default:
+	}
+	if got := get(info.state); got != http.StatusOK {
+		t.Fatalf("valid state status = %d, want 200", got)
+	}
+	if err := <-resultCh; err != nil {
+		t.Fatalf("login failed after valid redirect: %v", err)
 	}
 }
 

@@ -38,6 +38,9 @@ create table if not exists content_sources (
   source_revision text not null default '',
   provenance_hash text not null,
   fidelity text not null,
+  window_start text not null default '',
+  window_end text not null default '',
+  participants text not null default '',
   primary key (source, source_id),
   foreign key (meeting_id, content_hash) references meeting_contents(meeting_id, content_hash)
 );
@@ -73,4 +76,13 @@ create table if not exists index_runs (
 );
 `
 
-const SchemaVersion = 1
+const SchemaVersion = 2
+
+// addedColumns lists columns added after version 1. create table if not exists
+// leaves an older index without them, so ReplaceIndex adds them while it
+// rebuilds the rows, and OpenReadOnly refuses an index that lacks them.
+var addedColumns = []struct{ table, column, ddl string }{
+	{"content_sources", "window_start", "text not null default ''"},
+	{"content_sources", "window_end", "text not null default ''"},
+	{"content_sources", "participants", "text not null default ''"},
+}

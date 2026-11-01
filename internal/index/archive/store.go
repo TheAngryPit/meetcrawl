@@ -39,6 +39,9 @@ type SourceLink struct {
 	SourceRevision string
 	ProvenanceHash string
 	Fidelity       source.Fidelity
+	WindowStart    string
+	WindowEnd      string
+	Participants   string
 }
 
 type Status struct {
@@ -95,6 +98,12 @@ func (s *Store) DB() *sql.DB {
 
 func (s *Store) ReplaceIndex(ctx context.Context, meetings []MeetingRecord, contents []ContentRecord, finishedAt time.Time) error {
 	return s.inner.WithTx(ctx, func(tx *sql.Tx) error {
+		// An older index gains its columns here, in the same transaction that
+		// refills every row, so a read-only open never sees columns that the
+		// rows were not rebuilt for.
+		if err := ensureColumns(ctx, tx); err != nil {
+			return err
+		}
 		for _, table := range []string{"content_sources", "meeting_fidelities", "meeting_contents", "meetings"} {
 			if _, err := tx.ExecContext(ctx, "delete from "+table); err != nil {
 				return err
@@ -125,8 +134,9 @@ values (?, ?, ?, ?, ?)
 		defer contentStmt.Close()
 		sourceStmt, err := tx.PrepareContext(ctx, `
 insert into content_sources(
-  meeting_id, content_hash, source, source_id, source_revision, provenance_hash, fidelity
-) values (?, ?, ?, ?, ?, ?, ?)
+  meeting_id, content_hash, source, source_id, source_revision, provenance_hash, fidelity,
+  window_start, window_end, participants
+) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `)
 		if err != nil {
 			return err
@@ -169,6 +179,9 @@ insert into content_sources(
 					link.SourceRevision,
 					link.ProvenanceHash,
 					link.Fidelity.String(),
+					link.WindowStart,
+					link.WindowEnd,
+					link.Participants,
 				); err != nil {
 					return err
 				}
@@ -181,6 +194,48 @@ values (?, ?, ?, ?)
 `, len(meetings), len(contents), sourceLinks, finishedAt.UTC().Format(time.RFC3339Nano))
 		return err
 	})
+}
+
+// sqlRunner is the part of *sql.DB and *sql.Tx that ensureColumns needs.
+type sqlRunner interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+func ensureColumns(ctx context.Context, db sqlRunner) error {
+	for _, add := range addedColumns {
+		has, err := hasColumn(ctx, db, add.table, add.column)
+		if err != nil {
+			return err
+		}
+		if has {
+			continue
+		}
+		if _, err := db.ExecContext(ctx, fmt.Sprintf("alter table %s add column %s %s", add.table, add.column, add.ddl)); err != nil {
+			return fmt.Errorf("add %s.%s: %w", add.table, add.column, err)
+		}
+	}
+	return nil
+}
+
+func hasColumn(ctx context.Context, db sqlRunner, table, column string) (bool, error) {
+	rows, err := db.QueryContext(ctx, fmt.Sprintf("pragma table_info(%s)", table))
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid, notNull, pk int
+		var name, colType string
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &dflt, &pk); err != nil {
+			return false, err
+		}
+		if name == column {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
 }
 
 func nullString(v string) any {

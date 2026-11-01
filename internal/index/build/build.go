@@ -64,6 +64,10 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("index: calendar enrichment: %w", err)
 	}
+	recorded := make([]recorderFacts, len(rows))
+	for i, row := range rows {
+		recorded[i] = recorderFacts{start: row.WindowStart, end: row.WindowEnd, participants: row.Participants}
+	}
 	enrich.ApplyRows(rows, events)
 	privacyCfg, err := opts.Privacy.Compile()
 	if err != nil {
@@ -80,7 +84,7 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 		}
 		rows[i].Privacy = class
 	}
-	meetings, contents, err := assemble(rows, meetingIDs)
+	meetings, contents, err := assemble(rows, recorded, meetingIDs)
 	if err != nil {
 		return Result{}, err
 	}
@@ -106,7 +110,15 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	}, nil
 }
 
-func assemble(rows []crawler.Row, meetingIDs map[int]string) ([]archive.MeetingRecord, []archive.ContentRecord, error) {
+// recorderFacts are what the recorder itself reported, taken before calendar
+// enrichment replaces the window with the scheduled event's and fills a missing
+// roster with an attendee count.
+type recorderFacts struct {
+	start, end   time.Time
+	participants string
+}
+
+func assemble(rows []crawler.Row, recorded []recorderFacts, meetingIDs map[int]string) ([]archive.MeetingRecord, []archive.ContentRecord, error) {
 	byMeeting := map[string][]int{}
 	for i, id := range meetingIDs {
 		byMeeting[id] = append(byMeeting[id], i)
@@ -172,6 +184,9 @@ func assemble(rows []crawler.Row, meetingIDs map[int]string) ([]archive.MeetingR
 					SourceRevision: row.SourceRevision,
 					ProvenanceHash: row.ProvenanceHash,
 					Fidelity:       row.Fidelity,
+					WindowStart:    formatUTC(recorded[idx].start),
+					WindowEnd:      formatUTC(recorded[idx].end),
+					Participants:   recorded[idx].participants,
 				})
 			}
 			contents = append(contents, content)
@@ -184,6 +199,13 @@ func assemble(rows []crawler.Row, meetingIDs map[int]string) ([]archive.MeetingR
 		return contents[i].ContentHash < contents[j].ContentHash
 	})
 	return meetings, contents, nil
+}
+
+func formatUTC(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339)
 }
 
 func calendarFields(meetingID string, rows []crawler.Row) (string, string) {

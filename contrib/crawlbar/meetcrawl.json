@@ -41,15 +41,6 @@
             ],
             "json": true
         },
-        "search": {
-            "title": "Search",
-            "argv": [
-                "meet",
-                "search",
-                "--json"
-            ],
-            "json": true
-        },
         "status": {
             "title": "Status",
             "argv": [

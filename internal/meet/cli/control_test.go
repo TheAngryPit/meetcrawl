@@ -79,6 +79,19 @@ func TestShippedCrawlbarManifestMatchesCommand(t *testing.T) {
 	}
 }
 
+func TestManifestSearchIsACapabilityNotARunnableCommand(t *testing.T) {
+	manifest := mustManifest(t)
+	if _, ok := manifest.Commands["search"]; ok {
+		t.Fatal("search needs a query, which a manifest command cannot supply; list it as a capability only")
+	}
+	for _, capability := range manifest.Capabilities {
+		if capability == "search" {
+			return
+		}
+	}
+	t.Fatal("search capability missing")
+}
+
 func mustManifest(t *testing.T) control.Manifest {
 	t.Helper()
 	cfg, configPath, err := mconfig.Load("")

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Repository hygiene: required docs, no forbidden tracked files, no secret material.
-# Synthetic fixtures under testdata/ may be tracked SQLite files.
+# Only synthetic SQLite fixtures under testdata/ may be tracked.
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -16,7 +16,7 @@ done
 
 while IFS= read -r -d '' path; do
   case "$path" in
-    testdata/*) continue ;;
+    testdata/*.db|testdata/*.db-wal|testdata/*.db-shm) continue ;;
   esac
   base="${path##*/}"
   case "$base" in

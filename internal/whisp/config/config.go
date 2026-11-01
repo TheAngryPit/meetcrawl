@@ -119,7 +119,7 @@ func DefaultOpenWhisprDB() string {
 	if err != nil {
 		return ""
 	}
-	candidates := openWhisprCandidates(runtime.GOOS, home, os.Getenv("XDG_CONFIG_HOME"), os.Getenv("APPDATA"))
+	candidates := openWhisprCandidates(runtime.GOOS, home, os.Getenv("XDG_CONFIG_HOME"))
 	for _, path := range candidates {
 		if _, err := os.Stat(path); err == nil {
 			return path
@@ -129,15 +129,10 @@ func DefaultOpenWhisprDB() string {
 }
 
 // openWhisprCandidates lists likely transcriptions.db paths, native location first.
-func openWhisprCandidates(goos, home, xdgConfigHome, appData string) []string {
+func openWhisprCandidates(goos, home, xdgConfigHome string) []string {
 	var dirs []string
-	switch goos {
-	case "darwin":
+	if goos == "darwin" {
 		dirs = append(dirs, filepath.Join(home, "Library", "Application Support"))
-	case "windows":
-		if appData != "" {
-			dirs = append(dirs, appData)
-		}
 	}
 	if filepath.IsAbs(xdgConfigHome) {
 		dirs = append(dirs, xdgConfigHome)

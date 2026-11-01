@@ -13,7 +13,6 @@ func TestOpenWhisprCandidates(t *testing.T) {
 		name string
 		goos string
 		xdg  string
-		app  string
 		want []string
 	}{
 		{
@@ -58,7 +57,7 @@ func TestOpenWhisprCandidates(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := openWhisprCandidates(tt.goos, home, tt.xdg, tt.app)
+			got := openWhisprCandidates(tt.goos, home, tt.xdg)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Fatalf("candidates = %v, want %v", got, tt.want)
 			}

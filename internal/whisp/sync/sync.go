@@ -27,7 +27,6 @@ type Result struct {
 	Detail    string             `json:"detail,omitempty"`
 	Artifacts int                `json:"artifacts"`
 	SourceDB  string             `json:"source_db"`
-	Snapshot  string             `json:"snapshot_path,omitempty"`
 	Outcome   source.SyncOutcome `json:"-"`
 }
 
@@ -65,6 +64,9 @@ func Run(ctx context.Context, cfg wconfig.Config, opts Options) (Result, error) 
 	if err != nil {
 		return Result{}, fmt.Errorf("snapshot openwhispr db: %w", err)
 	}
+	// The snapshot is a full copy of the source, including data meetcrawl
+	// never reads (voice embeddings, share tokens). Remove it once read.
+	defer removeSnapshot(snapshot.Path)
 
 	readStore, err := ckstore.OpenReadOnly(ctx, snapshot.Path)
 	if err != nil {
@@ -77,7 +79,6 @@ func Run(ctx context.Context, cfg wconfig.Config, opts Options) (Result, error) 
 			Code:     source.OutcomeUnsupportedSchema,
 			Detail:   err.Error(),
 			SourceDB: sourceDB,
-			Snapshot: snapshot.Path,
 		}, &UnsupportedSchemaError{Detail: err.Error()}
 	}
 
@@ -129,9 +130,14 @@ func Run(ctx context.Context, cfg wconfig.Config, opts Options) (Result, error) 
 		Code:      source.OutcomeOK,
 		Artifacts: len(artifacts),
 		SourceDB:  sourceDB,
-		Snapshot:  snapshot.Path,
 		Outcome:   outcome,
 	}, nil
+}
+
+func removeSnapshot(path string) {
+	for _, p := range []string{path, path + "-wal", path + "-shm"} {
+		_ = os.Remove(p)
+	}
 }
 
 func IsUnsupportedSchema(err error) bool {

@@ -41,7 +41,7 @@ meetcrawl is source-agnostic. It copies transcripts into one local SQLite index,
 
 The archive follows these rules.
 
-- **Read-only against sources.** Each source adapter writes its own cache and archive. It snapshots a live store, then reads the snapshot.
+- **Read-only against sources.** Each source adapter writes its own cache and archive. It snapshots a live store, reads the snapshot, then deletes it, so no copy of the source stays in the cache.
 - **Local-first.** Archives live under your home directory. Directories use permission 0700. Files use permission 0600. The MCP server uses stdio and opens no listener. The only listener is the short-lived `127.0.0.1` OAuth redirect that `meetcrawl auth` runs during Google login.
 - **Privacy classes.** Each artifact is `private`, `restricted`, or `shareable`. `private` is the default. Config rules set the class.
 - **Provenance.** A stored answer traces back to the source, the source revision, and a content hash.

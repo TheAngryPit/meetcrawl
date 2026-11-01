@@ -1,6 +1,6 @@
 # Google Meet / Gemini (`gmeet` adapter)
 
-Configure the gmeet source through the unified **`meet`** config at the config path printed by `meet init` (`~/.config/meetcrawl/config.toml` on Linux, `~/Library/Application Support/meetcrawl/config.toml` on macOS). Legacy standalone `gmeetcrawl` configs are not imported automatically.
+Configure the gmeet source through the unified **`meetcrawl`** config at the config path printed by `meetcrawl init` (`~/.config/meetcrawl/config.toml` on Linux, `~/Library/Application Support/meetcrawl/config.toml` on macOS). Legacy standalone `gmeetcrawl` configs are not imported automatically.
 
 ## Archive path
 
@@ -28,9 +28,9 @@ The folder list is a scope filter. Ingest still requires a Gemini title match an
 
 ## OAuth paths
 
-Under `[gmeet]`, `oauth_client_path` and `token_path` point at the desktop OAuth client JSON and the token store. Run **`meet auth`** (optional `--client <path>`, `--manual`). Scopes stay read-only: `drive.readonly` and `calendar.events.readonly`.
+Under `[gmeet]`, `oauth_client_path` and `token_path` point at the desktop OAuth client JSON and the token store. Run **`meetcrawl auth`** (optional `--client <path>`, `--manual`). Scopes stay read-only: `drive.readonly` and `calendar.events.readonly`.
 
-Calendar enrichment at **`meet index`** can reuse the same token paths via `[calendar]` or `[gmeet]`.
+Calendar enrichment at **`meetcrawl index`** can reuse the same token paths via `[calendar]` or `[gmeet]`.
 
 ## Cache and logs
 

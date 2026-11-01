@@ -178,12 +178,12 @@ func TestSyntheticAdapterIndexAndMCP(t *testing.T) {
 	}
 
 	repoRoot := moduleRoot(t)
-	meetBin := filepath.Join(home, "meet")
-	buildCmd := exec.Command("go", "build", "-o", meetBin, "./cmd/meet")
+	meetBin := filepath.Join(home, "meetcrawl")
+	buildCmd := exec.Command("go", "build", "-o", meetBin, "./cmd/meetcrawl")
 	buildCmd.Dir = repoRoot
 	buildCmd.Env = append(os.Environ(), "HOME="+buildHome, "GOTELEMETRY=off")
 	if out, err := buildCmd.CombinedOutput(); err != nil {
-		t.Fatalf("build meet: %v\n%s", err, out)
+		t.Fatalf("build meetcrawl: %v\n%s", err, out)
 	}
 	cmd := exec.Command(meetBin, "--config", configPath, "mcp")
 	client := sdkmcp.NewClient(&sdkmcp.Implementation{Name: "registry-test", Version: "test"}, nil)

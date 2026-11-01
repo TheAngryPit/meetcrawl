@@ -8,5 +8,5 @@ type Info struct {
 }
 
 func Current() Info {
-	return Info{Name: "meet", Version: Version}
+	return Info{Name: "meetcrawl", Version: Version}
 }

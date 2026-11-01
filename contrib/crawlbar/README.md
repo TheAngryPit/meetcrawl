@@ -5,5 +5,5 @@
 Install or refresh for your account:
 
 ```bash
-meet metadata --json > ~/.crawlbar/apps/meetcrawl.json
+meetcrawl metadata --json > ~/.crawlbar/apps/meetcrawl.json
 ```

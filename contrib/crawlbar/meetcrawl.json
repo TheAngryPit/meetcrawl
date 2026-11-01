@@ -1,10 +1,10 @@
 {
     "schema_version": "crawlkit.control.v1",
-    "id": "meet",
+    "id": "meetcrawl",
     "display_name": "Meetings Index",
     "description": "Local-first meetings index with pluggable source adapters.",
     "binary": {
-        "name": "meet"
+        "name": "meetcrawl"
     },
     "branding": {},
     "paths": {
@@ -16,7 +16,7 @@
         "doctor": {
             "title": "Doctor",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "doctor",
                 "--json"
             ],
@@ -25,7 +25,7 @@
         "index": {
             "title": "Index",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "index",
                 "--json"
             ],
@@ -35,7 +35,7 @@
         "metadata": {
             "title": "Metadata",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "metadata",
                 "--json"
             ],
@@ -44,7 +44,7 @@
         "sync": {
             "title": "Sync",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -56,7 +56,7 @@
         "status": {
             "title": "Status",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "status",
                 "--json"
             ],
@@ -65,7 +65,7 @@
         "sync-circleback": {
             "title": "Sync circleback",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -77,7 +77,7 @@
         "sync-export_file": {
             "title": "Sync export-file",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -89,7 +89,7 @@
         "sync-fathom": {
             "title": "Sync fathom",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -101,7 +101,7 @@
         "sync-fireflies": {
             "title": "Sync fireflies",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -113,7 +113,7 @@
         "sync-gmeet": {
             "title": "Sync gmeet",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -125,7 +125,7 @@
         "sync-grain": {
             "title": "Sync grain",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -137,7 +137,7 @@
         "sync-granola": {
             "title": "Sync granola",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -149,7 +149,7 @@
         "sync-krisp": {
             "title": "Sync krisp",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -161,7 +161,7 @@
         "sync-openwhispr": {
             "title": "Sync openwhispr",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -173,7 +173,7 @@
         "sync-tldv": {
             "title": "Sync tldv",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -185,7 +185,7 @@
         "sync-pocket": {
             "title": "Sync pocket",
             "argv": [
-                "meet",
+                "meetcrawl",
                 "sync",
                 "--json",
                 "--source",
@@ -218,7 +218,7 @@
             "circleback SQLite archive",
             "tldv SQLite archive",
             "pocket SQLite archive",
-            "meet index SQLite archive"
+            "meetcrawl index SQLite archive"
         ]
     }
 }

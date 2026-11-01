@@ -14,7 +14,7 @@ import (
 	wconfig "github.com/TheAngryPit/meetcrawl/internal/whisp/config"
 )
 
-// ConfigView is the slice of meet config registry entries need (avoids importing meetcrawl/config).
+// ConfigView is the slice of meetcrawl config registry entries need (avoids importing meetcrawl/config).
 type ConfigView interface {
 	OpenWhisprArchiveDB() string
 	GMeetArchiveDB() string

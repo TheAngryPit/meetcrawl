@@ -20,7 +20,7 @@ func TestInitAndSyncCreateOnlyTheDirsTheyNeed(t *testing.T) {
 	run := func(args ...string) {
 		t.Helper()
 		if err := app.Run(context.Background(), args); err != nil {
-			t.Fatalf("meet %v: %v", args, err)
+			t.Fatalf("meetcrawl %v: %v", args, err)
 		}
 	}
 	appDirs := func() map[string]bool {

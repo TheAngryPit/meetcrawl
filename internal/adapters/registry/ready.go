@@ -68,7 +68,7 @@ func tokenReady(tokenPath string) Readiness {
 	case err == nil:
 		return ready()
 	case errors.Is(err, oauth.ErrTokenNotFound):
-		return skip("no Google OAuth token (run meet auth)")
+		return skip("no Google OAuth token (run meetcrawl auth)")
 	default:
 		return skip("Google OAuth token unreadable: " + err.Error())
 	}
@@ -77,7 +77,7 @@ func tokenReady(tokenPath string) Readiness {
 // secretReady skips whenever the secret cannot be read, including a missing
 // keychain or a locked 1Password, so an unattended run on a machine that does
 // not use a source does not fail. The reason names the cause. A direct
-// meet sync --source <name> still reports the error itself.
+// meetcrawl sync --source <name> still reports the error itself.
 func secretReady(ctx context.Context, d Deps, ref, fallback string) Readiness {
 	ref = strings.TrimSpace(ref)
 	if ref == "" {

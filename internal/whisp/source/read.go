@@ -74,7 +74,7 @@ func ArtifactsForNote(note MeetingNote, crawlerVersion string) ([]source.Artifac
 		suffix   string
 	}
 	fields := []field{
-		{text: note.Transcript, fidelity: source.FidelityTranscript, suffix: "transcript"},
+		{text: FormatTranscript(note.Transcript), fidelity: source.FidelityTranscript, suffix: "transcript"},
 		{text: note.Content, fidelity: source.FidelityNotes, suffix: "notes"},
 		{text: note.EnhancedContent, fidelity: source.FidelitySummary, suffix: "summary"},
 	}

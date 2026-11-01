@@ -61,6 +61,7 @@ Snapshot, backup, mirror (Git) and embed/vector are **not used in phase 1**. Pro
 - Capture: copy DB+WAL+SHM with `cache.SnapshotSQLite`/`CopyStableFiles`, then `store.OpenReadOnly` on the copy. The live file is never opened.
 - Reads `notes` rows (meeting type: `note_type='meeting'`): `transcript` → fidelity `transcript`; `content` → `notes`; `enhanced_content` → `summary`. Also `calendar_event_id`, `participants`, timestamps, `deleted_at`.
 - Schema check via `PRAGMA table_info` in `internal/whisp/schema`: **desktop** (macOS app) or **iOS** (OpenWhispr mobile `notes` table per `openwhispr-mobile/src/db/schema.ts`). Any other column set → `unsupported_schema`. How the iOS database file reaches the Mac for sync is **not** specified here.
+- Meeting transcripts: OpenWhispr stores `notes.transcript` as a JSON array of segments (plain text before v1.6.6). The adapter indexes one `[MM:SS] Speaker: text` line per segment, in stored order. The speaker is the resolved `speakerName`, else the recorder's own name on their microphone track, else the diarization label, else `Microphone` (the recorder's track) or `System audio` (everyone else). Plain text and unreadable arrays are indexed as stored.
 - Never reads `transcript_segments`, `speakers`, or `speaker_profiles`; never copies share tokens, `remote_id` / cloud sync columns, or voice biometrics. Never calls OpenWhispr cloud sync.
 
 **gmeet adapter (`internal/adapters/gmeet`): Gemini/Meet Docs in Google Drive.**

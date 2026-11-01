@@ -7,8 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/TheAngryPit/meetcrawl/internal/secret"
+	"github.com/TheAngryPit/meetcrawl/internal/source"
+	"github.com/zalando/go-keyring"
 )
 
 type failingProvider struct{ err error }
@@ -65,5 +68,62 @@ func TestSecretReady(t *testing.T) {
 				t.Fatalf("secretReady() = %+v, want ready=%v reason containing %q", got, tt.wantReady, tt.wantIn)
 			}
 		})
+	}
+}
+
+func TestTokenReadySeparatesAbsentFromUnreadable(t *testing.T) {
+	keyring.MockInit()
+	dir := t.TempDir()
+
+	absent := tokenReady(filepath.Join(dir, "none.json"))
+	if absent.Ready || !strings.Contains(absent.Reason, "meet auth") {
+		t.Fatalf("absent token = %+v, want skipped with a meet auth hint", absent)
+	}
+
+	broken := filepath.Join(dir, "broken.json")
+	if err := os.WriteFile(broken, []byte("{not json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got := tokenReady(broken)
+	if got.Ready || !strings.Contains(got.Reason, "unreadable") || strings.Contains(got.Reason, "meet auth") {
+		t.Fatalf("malformed token = %+v, want skipped as unreadable with the cause", got)
+	}
+
+	valid := filepath.Join(dir, "valid.json")
+	if err := os.WriteFile(valid, []byte(`{"access_token":"x","token_type":"Bearer"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := tokenReady(valid); !got.Ready {
+		t.Fatalf("valid token = %+v, want ready", got)
+	}
+}
+
+func TestReadyForSkipsACheckThatDoesNotFinish(t *testing.T) {
+	const name Name = "ready-timeout-test"
+	release := make(chan struct{})
+	t.Cleanup(func() { close(release) })
+	Register(Entry{
+		Name:        name,
+		Kind:        source.Kind("ready-timeout-test"),
+		ArchivePath: func(ConfigView) string { return "" },
+		Ready: func(context.Context, Deps) Readiness {
+			<-release
+			return ready()
+		},
+		NewAdapter: func(Deps, SyncOptions) source.Adapter { return nil },
+	})
+	t.Cleanup(func() { Unregister(name) })
+
+	prev := readyTimeout
+	readyTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { readyTimeout = prev })
+
+	started := time.Now()
+	got := ReadyFor(context.Background(), name, Deps{})
+	if got.Ready || !strings.Contains(got.Reason, "timed out") {
+		t.Fatalf("ReadyFor() = %+v, want skipped as timed out", got)
+	}
+	if elapsed := time.Since(started); elapsed > 2*time.Second {
+		t.Fatalf("ReadyFor() took %v, want it bounded by the timeout", elapsed)
 	}
 }

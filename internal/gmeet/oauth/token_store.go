@@ -21,6 +21,9 @@ type TokenStore struct {
 	Keyring        KeyringBackend
 }
 
+// ErrTokenNotFound means no token is stored, as opposed to one that cannot be read.
+var ErrTokenNotFound = errors.New("oauth token not found")
+
 func DefaultTokenStore(filePath string) TokenStore {
 	return TokenStore{FilePath: filePath, KeyringEnabled: true}
 }
@@ -41,12 +44,12 @@ func (s TokenStore) Load() (*oauth2.Token, error) {
 		}
 	}
 	if strings.TrimSpace(s.FilePath) == "" {
-		return nil, errors.New("oauth token not found")
+		return nil, ErrTokenNotFound
 	}
 	data, err := os.ReadFile(s.FilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, errors.New("oauth token not found")
+			return nil, ErrTokenNotFound
 		}
 		return nil, fmt.Errorf("read oauth token: %w", err)
 	}

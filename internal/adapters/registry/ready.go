@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/TheAngryPit/meetcrawl/internal/gmeet/oauth"
 	"github.com/TheAngryPit/meetcrawl/internal/secret"
@@ -22,13 +23,27 @@ func ready() Readiness { return Readiness{Ready: true} }
 
 func skip(reason string) Readiness { return Readiness{Reason: reason} }
 
-// ReadyFor reports whether name can sync unattended. An entry with no check is ready.
+// readyTimeout bounds one readiness check. A locked keychain or 1Password can
+// wait for a person, which would stall an unattended run before later sources.
+var readyTimeout = 10 * time.Second
+
+// ReadyFor reports whether name can sync unattended. An entry with no check is
+// ready. A check that does not finish within readyTimeout skips the source.
 func ReadyFor(ctx context.Context, name Name, d Deps) Readiness {
 	e, ok := byName[name]
 	if !ok || e.Ready == nil {
 		return ready()
 	}
-	return e.Ready(ctx, d)
+	ctx, cancel := context.WithTimeout(ctx, readyTimeout)
+	defer cancel()
+	done := make(chan Readiness, 1)
+	go func() { done <- e.Ready(ctx, d) }()
+	select {
+	case r := <-done:
+		return r
+	case <-ctx.Done():
+		return skip("readiness check timed out after " + readyTimeout.String())
+	}
 }
 
 // fileReady skips only when the file is definitely absent, so any other
@@ -45,10 +60,15 @@ func fileReady(path, what string) Readiness {
 }
 
 func tokenReady(tokenPath string) Readiness {
-	if oauth.DefaultTokenStore(tokenPath).HasToken() {
+	_, err := oauth.DefaultTokenStore(tokenPath).Load()
+	switch {
+	case err == nil:
 		return ready()
+	case errors.Is(err, oauth.ErrTokenNotFound):
+		return skip("no Google OAuth token (run meet auth)")
+	default:
+		return skip("Google OAuth token unreadable: " + err.Error())
 	}
-	return skip("no Google OAuth token (run meet auth)")
 }
 
 // secretReady skips whenever the secret cannot be read, including a missing

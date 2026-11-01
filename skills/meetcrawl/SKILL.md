@@ -5,7 +5,7 @@ description: Query a local meetcrawl meeting index via the meet CLI or read-only
 
 # meetcrawl
 
-meetcrawl builds a **local, read-only** SQLite index over meeting transcripts from configured sources (OpenWhispr, Google Meet/Gemini, export-file in phase 1). The shipped binary is **`meet`**. Nothing in this skill configures credentials or runs sync for you.
+meetcrawl builds a **local, read-only** SQLite index over meeting transcripts from configured sources (OpenWhispr, Google Meet/Gemini, export-file, and the registered phase adapters such as Granola, Fireflies and Fathom). The shipped binary is **`meet`**. Nothing in this skill configures credentials or runs sync for you.
 
 ## When to use
 
@@ -25,8 +25,8 @@ meet [--config <path>] search <query> [--limit <n>]
 Local maintenance (not source writes):
 
 ```bash
-meet sync --source openwhispr|gmeet|export-file   # per-source flags; see docs/SPEC.md
-meet index                                         # rebuild index from archives
+meet sync --source <name>                          # see `meet --help` for names; flags in docs/SPEC.md
+meet index                                         # rebuild index; skips sources not synced yet
 meet auth                                          # gmeet OAuth only
 ```
 

@@ -1,10 +1,10 @@
 # Google Meet / Gemini (`gmeet` adapter)
 
-Configure the gmeet source through the unified **`meet`** config at `~/.config/meetcrawl/config.toml` (see `meet init`). Legacy standalone `gmeetcrawl` configs are not imported automatically.
+Configure the gmeet source through the unified **`meet`** config at the config path printed by `meet init` (`~/.config/meetcrawl/config.toml` on Linux, `~/Library/Application Support/meetcrawl/config.toml` on macOS). Legacy standalone `gmeetcrawl` configs are not imported automatically.
 
 ## Archive path
 
-The gmeet SQLite archive path is the top-level key **`gmeetcrawl_db`** (default under `~/.local/share/gmeetcrawl/`). Per-source settings live under **`[gmeet]`**.
+The gmeet SQLite archive path is the top-level key **`gmeetcrawl_db`** (default under `~/.local/share/gmeetcrawl/` on Linux, `~/Library/Application Support/gmeetcrawl/` on macOS). Per-source settings live under **`[gmeet]`**.
 
 ## Meet folder roots
 

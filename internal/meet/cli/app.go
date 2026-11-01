@@ -40,7 +40,8 @@ Commands:
 
 Global flags:
   --json       JSON output (place before the command)
-  --config     Path to config.toml (default ~/.config/meetcrawl/config.toml)
+  --config     Path to config.toml (default: ~/.config/meetcrawl/config.toml on Linux,
+               ~/Library/Application Support/meetcrawl/config.toml on macOS)
   --version    Print version and exit
 `
 

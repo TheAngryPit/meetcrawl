@@ -28,7 +28,7 @@ Usage:
 Commands:
   init       Create config, reads.db schema, and data directories
   doctor     Check source archive paths and index database
-  sync       Sync one source adapter (--source openwhispr|gmeet|export-file|grain|granola|fireflies|fathom|krisp|circleback|tldv|pocket)
+  sync       Sync one source adapter, or every source that is set up (--source all|openwhispr|gmeet|export-file|grain|granola|fireflies|fathom|krisp|circleback|tldv|pocket)
   index      Rebuild meetcrawl.db from registered source archives (optional --calendar-fixture;
              per-source archive overrides: --openwhispr-db / --whispcrawl-db, --gmeet-db /
              --gmeetcrawl-db, --export-file-db / --exportcrawl-db)
@@ -179,23 +179,19 @@ func (a App) runDoctor(w io.Writer, flags GlobalFlags) error {
 func (a App) runSync(ctx context.Context, w io.Writer, flags GlobalFlags, args []string) error {
 	sourceRaw, ok := flagValue(args, "--source")
 	if !ok || strings.TrimSpace(sourceRaw) == "" {
-		return fmt.Errorf("usage: meet sync --source openwhispr|gmeet|export-file|grain|granola|fireflies|fathom|krisp|circleback|tldv|pocket [flags]")
+		return fmt.Errorf("usage: meet sync --source all|openwhispr|gmeet|export-file|grain|granola|fireflies|fathom|krisp|circleback|tldv|pocket [flags]")
 	}
-	name, err := registry.ParseName(sourceRaw)
-	if err != nil {
-		return err
+	syncAll := strings.TrimSpace(sourceRaw) == syncAllSource
+	var name registry.Name
+	if !syncAll {
+		var err error
+		if name, err = registry.ParseName(sourceRaw); err != nil {
+			return err
+		}
 	}
 	cfg, _, err := mconfig.Load(flags.ConfigPath)
 	if err != nil {
 		return err
-	}
-	if err := registry.EnsureSourceDirs(name, mconfig.ConfigView(cfg)); err != nil {
-		return err
-	}
-	opts := registry.SyncOptions{
-		SourceDB:   trimFlag(args, "--source-db"),
-		FixtureDir: trimFlag(args, "--fixture"),
-		SourceDir:  trimFlag(args, "--source-dir"),
 	}
 	secrets, err := cfg.SecretProvider()
 	if err != nil {
@@ -206,11 +202,18 @@ func (a App) runSync(ctx context.Context, w io.Writer, flags GlobalFlags, args [
 		CrawlerVersion: buildinfo.Current().Version,
 		Secrets:        secrets,
 	}
-	adapter, err := registry.NewAdapter(name, deps, opts)
-	if err != nil {
-		return err
+	opts := registry.SyncOptions{
+		SourceDB:   trimFlag(args, "--source-db"),
+		FixtureDir: trimFlag(args, "--fixture"),
+		SourceDir:  trimFlag(args, "--source-dir"),
 	}
-	outcome, err := adapter.Sync(ctx)
+	if syncAll {
+		if opts != (registry.SyncOptions{}) {
+			return fmt.Errorf("--source-db, --fixture and --source-dir apply to one source, not %q", syncAllSource)
+		}
+		return a.runSyncAll(ctx, w, flags, deps)
+	}
+	outcome, err := syncSource(ctx, name, deps, opts)
 	payload := syncPayload(name, opts, outcome)
 	if err != nil && outcome.Code == source.OutcomeUnsupportedSchema {
 		if flags.JSON {
@@ -234,6 +237,80 @@ func (a App) runSync(ctx context.Context, w io.Writer, flags GlobalFlags, args [
 	printKV(w, "artifacts", len(outcome.Artifacts))
 	printKV(w, "source", name)
 	return nil
+}
+
+// syncAllSource is the --source value that syncs every source that is set up.
+const syncAllSource = "all"
+
+func syncSource(ctx context.Context, name registry.Name, deps registry.Deps, opts registry.SyncOptions) (source.SyncOutcome, error) {
+	if err := registry.EnsureSourceDirs(name, deps.Config); err != nil {
+		return source.SyncOutcome{}, err
+	}
+	adapter, err := registry.NewAdapter(name, deps, opts)
+	if err != nil {
+		return source.SyncOutcome{}, err
+	}
+	return adapter.Sync(ctx)
+}
+
+type syncAllStatus string
+
+const (
+	syncAllOK      syncAllStatus = "ok"
+	syncAllSkipped syncAllStatus = "skipped"
+	syncAllFailed  syncAllStatus = "failed"
+)
+
+type syncAllItem struct {
+	Source    registry.Name `json:"source"`
+	Status    syncAllStatus `json:"status"`
+	Artifacts int           `json:"artifacts,omitempty"`
+	Reason    string        `json:"reason,omitempty"`
+}
+
+// runSyncAll syncs each source that is set up and skips the rest. It fails
+// only when a source that is set up fails, so a scheduler can run it on a
+// machine that uses a few of the sources.
+func (a App) runSyncAll(ctx context.Context, w io.Writer, flags GlobalFlags, deps registry.Deps) error {
+	var items []syncAllItem
+	failed := 0
+	for _, name := range registry.Names() {
+		if r := registry.ReadyFor(ctx, name, deps); !r.Ready {
+			items = append(items, syncAllItem{Source: name, Status: syncAllSkipped, Reason: r.Reason})
+			continue
+		}
+		outcome, err := syncSource(ctx, name, deps, registry.SyncOptions{})
+		switch {
+		case err != nil:
+			failed++
+			items = append(items, syncAllItem{Source: name, Status: syncAllFailed, Reason: err.Error()})
+		default:
+			items = append(items, syncAllItem{Source: name, Status: syncAllOK, Artifacts: len(outcome.Artifacts)})
+		}
+	}
+	var err error
+	if failed > 0 {
+		err = fmt.Errorf("%d of %d sources failed", failed, len(items))
+	}
+	if flags.JSON {
+		payload := map[string]any{"sources": items}
+		if err != nil {
+			_ = writeJSON(w, Envelope{OK: false, Result: payload, Error: err.Error()})
+			return err
+		}
+		return writeEnvelope(w, payload)
+	}
+	for _, item := range items {
+		line := fmt.Sprintf("%s: %s", item.Source, item.Status)
+		switch item.Status {
+		case syncAllOK:
+			line += fmt.Sprintf(" (%d artifacts)", item.Artifacts)
+		case syncAllSkipped, syncAllFailed:
+			line += " (" + item.Reason + ")"
+		}
+		fmt.Fprintln(w, line)
+	}
+	return err
 }
 
 func syncPayload(name registry.Name, opts registry.SyncOptions, outcome source.SyncOutcome) map[string]any {

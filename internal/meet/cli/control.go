@@ -22,6 +22,7 @@ func ControlManifest(configPath string, cfg mconfig.Config) control.Manifest {
 		"status":   {Title: "Status", Argv: []string{"meet", "status", "--json"}, JSON: true},
 		"doctor":   {Title: "Doctor", Argv: []string{"meet", "doctor", "--json"}, JSON: true},
 		"index":    {Title: "Index", Argv: []string{"meet", "index", "--json"}, JSON: true, Mutates: true},
+		"sync":     {Title: "Sync", Argv: []string{"meet", "sync", "--json", "--source", syncAllSource}, JSON: true, Mutates: true},
 	}
 	for _, name := range registry.Names() {
 		key := syncCommandKey(name)

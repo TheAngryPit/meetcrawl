@@ -25,7 +25,7 @@ meet [--config <path>] search <query> [--limit <n>]
 Local maintenance (not source writes):
 
 ```bash
-meet sync --source <name>                          # see `meet --help` for names; flags in docs/SPEC.md
+meet sync --source <name>|all                    # all = every source that is set up; flags in docs/SPEC.md
 meet index                                         # rebuild index; skips sources not synced yet
 meet auth                                          # gmeet OAuth only
 ```

@@ -24,6 +24,7 @@ A first run looks like this. `meet index` skips sources you have not synced yet.
 
 ```bash
 meet sync --source openwhispr      # or gmeet, export-file, granola, ...
+meet sync --source all             # every source that is set up; skips the rest
 meet index
 meet search "quarterly planning"
 ```

@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -58,6 +59,7 @@ type Entry struct {
 	Scope       string
 	ArchivePath func(ConfigView) string
 	EnsureDirs  func(ConfigView) error
+	Ready       func(context.Context, Deps) Readiness
 	NewAdapter  factory
 }
 
@@ -106,6 +108,9 @@ func init() {
 		EnsureDirs: func(c ConfigView) error {
 			return wconfig.EnsureDirs(c.WhispConfig())
 		},
+		Ready: func(_ context.Context, d Deps) Readiness {
+			return fileReady(d.Config.WhispConfig().SourceDB, "OpenWhispr database")
+		},
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.WhispConfig()
 			return openwhispr.Adapter{
@@ -125,6 +130,9 @@ func init() {
 		EnsureDirs: func(c ConfigView) error {
 			return gconfig.EnsureDirs(c.GMeetConfig())
 		},
+		Ready: func(_ context.Context, d Deps) Readiness {
+			return tokenReady(d.Config.GMeetConfig().TokenPath)
+		},
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.GMeetConfig()
 			return gmeet.Adapter{
@@ -143,6 +151,9 @@ func init() {
 		},
 		EnsureDirs: func(c ConfigView) error {
 			return econfig.EnsureDirs(c.ExportFileConfig())
+		},
+		Ready: func(_ context.Context, d Deps) Readiness {
+			return fileReady(d.Config.ExportFileConfig().SourceDir, "export-file source_dir")
 		},
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.ExportFileConfig()
@@ -164,6 +175,9 @@ func init() {
 		EnsureDirs: func(c ConfigView) error {
 			return grainconfig.EnsureDirs(c.GrainConfig())
 		},
+		Ready: func(ctx context.Context, d Deps) Readiness {
+			return secretReady(ctx, d, d.Config.GrainConfig().PATRef, secret.AccountGrainPAT)
+		},
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.GrainConfig()
 			return grain.Adapter{
@@ -183,6 +197,9 @@ func init() {
 		},
 		EnsureDirs: func(c ConfigView) error {
 			return granolaconfig.EnsureDirs(c.GranolaConfig())
+		},
+		Ready: func(ctx context.Context, d Deps) Readiness {
+			return secretReady(ctx, d, d.Config.GranolaConfig().APIKeyRef, secret.AccountGranolaAPIKey)
 		},
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.GranolaConfig()
@@ -204,6 +221,9 @@ func init() {
 		EnsureDirs: func(c ConfigView) error {
 			return firefliesconfig.EnsureDirs(c.FirefliesConfig())
 		},
+		Ready: func(ctx context.Context, d Deps) Readiness {
+			return secretReady(ctx, d, d.Config.FirefliesConfig().APIKeyRef, secret.AccountFirefliesAPIKey)
+		},
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.FirefliesConfig()
 			return fireflies.Adapter{
@@ -223,6 +243,9 @@ func init() {
 		},
 		EnsureDirs: func(c ConfigView) error {
 			return fathomconfig.EnsureDirs(c.FathomConfig())
+		},
+		Ready: func(ctx context.Context, d Deps) Readiness {
+			return secretReady(ctx, d, d.Config.FathomConfig().APIKeyRef, secret.AccountFathomAPIKey)
 		},
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.FathomConfig()
@@ -244,6 +267,9 @@ func init() {
 		EnsureDirs: func(c ConfigView) error {
 			return krispconfig.EnsureDirs(c.KrispConfig())
 		},
+		Ready: func(ctx context.Context, d Deps) Readiness {
+			return secretReady(ctx, d, d.Config.KrispConfig().APIKeyRef, secret.AccountKrispAPIKey)
+		},
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.KrispConfig()
 			return krisp.Adapter{
@@ -263,6 +289,9 @@ func init() {
 		},
 		EnsureDirs: func(c ConfigView) error {
 			return circlebackconfig.EnsureDirs(c.CirclebackConfig())
+		},
+		Ready: func(ctx context.Context, d Deps) Readiness {
+			return secretReady(ctx, d, d.Config.CirclebackConfig().APIKeyRef, secret.AccountCirclebackAPIKey)
 		},
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.CirclebackConfig()
@@ -284,6 +313,9 @@ func init() {
 		EnsureDirs: func(c ConfigView) error {
 			return tldvconfig.EnsureDirs(c.TldvConfig())
 		},
+		Ready: func(ctx context.Context, d Deps) Readiness {
+			return secretReady(ctx, d, d.Config.TldvConfig().APIKeyRef, secret.AccountTldvAPIKey)
+		},
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.TldvConfig()
 			return tldv.Adapter{
@@ -303,6 +335,9 @@ func init() {
 		},
 		EnsureDirs: func(c ConfigView) error {
 			return pocketconfig.EnsureDirs(c.PocketConfig())
+		},
+		Ready: func(ctx context.Context, d Deps) Readiness {
+			return secretReady(ctx, d, d.Config.PocketConfig().APIKeyRef, secret.AccountPocketAPIKey)
 		},
 		NewAdapter: func(d Deps, o SyncOptions) source.Adapter {
 			cfg := d.Config.PocketConfig()

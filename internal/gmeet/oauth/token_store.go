@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/zalando/go-keyring"
 	"golang.org/x/oauth2"
 )
 
@@ -34,22 +35,34 @@ func (s TokenStore) HasToken() bool {
 }
 
 func (s TokenStore) Load() (*oauth2.Token, error) {
+	var keychainErr error
 	if s.KeyringEnabled {
-		if raw, err := s.keyring().Get(keyringService, keyringAccount); err == nil && strings.TrimSpace(raw) != "" {
+		raw, err := s.keyring().Get(keyringService, keyringAccount)
+		if err == nil && strings.TrimSpace(raw) != "" {
 			var tok oauth2.Token
 			if err := json.Unmarshal([]byte(raw), &tok); err != nil {
 				return nil, fmt.Errorf("parse keychain token: %w", err)
 			}
 			return &tok, nil
 		}
+		if err != nil && !errors.Is(err, keyring.ErrNotFound) {
+			keychainErr = fmt.Errorf("read keychain token: %w", err)
+		}
+	}
+	// An unreadable keychain is reported only when no token file can stand in for it.
+	notFound := func() error {
+		if keychainErr != nil {
+			return keychainErr
+		}
+		return ErrTokenNotFound
 	}
 	if strings.TrimSpace(s.FilePath) == "" {
-		return nil, ErrTokenNotFound
+		return nil, notFound()
 	}
 	data, err := os.ReadFile(s.FilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, ErrTokenNotFound
+			return nil, notFound()
 		}
 		return nil, fmt.Errorf("read oauth token: %w", err)
 	}

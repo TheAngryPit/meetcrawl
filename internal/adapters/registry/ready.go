@@ -25,6 +25,9 @@ func skip(reason string) Readiness { return Readiness{Reason: reason} }
 
 // readyTimeout bounds one readiness check. A locked keychain or 1Password can
 // wait for a person, which would stall an unattended run before later sources.
+// The deadline abandons a blocked read and cannot cancel it: go-keyring starts
+// the macOS security tool without a context. A real sync of that source makes
+// the same read with no deadline at all.
 var readyTimeout = 10 * time.Second
 
 // ReadyFor reports whether name can sync unattended. An entry with no check is

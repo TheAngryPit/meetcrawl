@@ -1,13 +1,14 @@
 package oauth_test
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/TheAngryPit/meetcrawl/internal/gmeet/oauth"
+	"github.com/zalando/go-keyring"
 	"golang.org/x/oauth2"
 )
 
@@ -16,7 +17,7 @@ type memKeyring map[string]string
 func (m memKeyring) Get(service, account string) (string, error) {
 	v, ok := m[service+"/"+account]
 	if !ok {
-		return "", fmt.Errorf("not found")
+		return "", keyring.ErrNotFound
 	}
 	return v, nil
 }
@@ -89,5 +90,35 @@ func TestTokenStoreMissingToken(t *testing.T) {
 	store := oauth.TokenStore{FilePath: filepath.Join(t.TempDir(), "missing.json"), KeyringEnabled: false}
 	if _, err := store.Load(); err == nil {
 		t.Fatal("expected error for missing token")
+	}
+}
+
+type deniedKeyring struct{ memKeyring }
+
+func (deniedKeyring) Get(string, string) (string, error) { return "", errors.New("access denied") }
+
+func TestTokenStoreReportsUnreadableKeychainOnlyWithoutAFile(t *testing.T) {
+	t.Parallel()
+	missingFile := filepath.Join(t.TempDir(), "missing.json")
+
+	denied := oauth.TokenStore{FilePath: missingFile, KeyringEnabled: true, Keyring: deniedKeyring{}}
+	_, err := denied.Load()
+	if err == nil || errors.Is(err, oauth.ErrTokenNotFound) {
+		t.Fatalf("Load() with a denied keychain and no file = %v, want the keychain error", err)
+	}
+
+	absent := oauth.TokenStore{FilePath: missingFile, KeyringEnabled: true, Keyring: memKeyring{}}
+	if _, err := absent.Load(); !errors.Is(err, oauth.ErrTokenNotFound) {
+		t.Fatalf("Load() with an empty keychain and no file = %v, want ErrTokenNotFound", err)
+	}
+
+	file := filepath.Join(t.TempDir(), "token.json")
+	if err := os.WriteFile(file, []byte(`{"access_token":"from-file","token_type":"Bearer"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	fallback := oauth.TokenStore{FilePath: file, KeyringEnabled: true, Keyring: deniedKeyring{}}
+	tok, err := fallback.Load()
+	if err != nil || tok.AccessToken != "from-file" {
+		t.Fatalf("Load() with a denied keychain and a token file = %v, %v, want the file token", tok, err)
 	}
 }

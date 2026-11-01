@@ -64,6 +64,21 @@ func TestFormatTranscript(t *testing.T) {
 			want: `["a","b"]`,
 		},
 		{
+			name: "array with a null element is unchanged",
+			raw:  `[null]`,
+			want: `[null]`,
+		},
+		{
+			name: "objects without a text field are unchanged",
+			raw:  `[{"other":"value"}]`,
+			want: `[{"other":"value"}]`,
+		},
+		{
+			name: "one object without text makes the whole array unchanged",
+			raw:  `[{"text":"Kept?","source":"mic"},{"source":"system"}]`,
+			want: `[{"text":"Kept?","source":"mic"},{"source":"system"}]`,
+		},
+		{
 			name: "segment array with no text is an empty transcript",
 			raw:  `[]`,
 			want: "",

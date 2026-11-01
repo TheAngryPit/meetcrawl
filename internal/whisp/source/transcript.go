@@ -23,15 +23,28 @@ const (
 
 // ParseSegments reads the segment array OpenWhispr stores in notes.transcript.
 // It reports false for plain text (v1.6.0 to v1.6.5) and for anything that is
-// not an array of segments, so the caller keeps the stored text as it is.
+// not an array of segment objects with a text field, so the caller keeps the
+// stored text as it is.
 func ParseSegments(raw string) ([]Segment, bool) {
 	raw = strings.TrimSpace(raw)
 	if !strings.HasPrefix(raw, "[") {
 		return nil, false
 	}
-	var segments []Segment
-	if err := json.Unmarshal([]byte(raw), &segments); err != nil {
+	var stored []*struct {
+		Segment
+		Text *string `json:"text"`
+	}
+	if err := json.Unmarshal([]byte(raw), &stored); err != nil {
 		return nil, false
+	}
+	segments := make([]Segment, 0, len(stored))
+	for _, s := range stored {
+		if s == nil || s.Text == nil {
+			return nil, false
+		}
+		segment := s.Segment
+		segment.Text = *s.Text
+		segments = append(segments, segment)
 	}
 	return segments, true
 }

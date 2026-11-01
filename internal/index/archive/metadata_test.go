@@ -132,7 +132,7 @@ create table content_sources (
 create table schema_migrations (version integer not null);
 insert into schema_migrations values (1);`
 
-func TestOlderIndexIsRefusedReadOnlyAndUpgradedOnOpen(t *testing.T) {
+func TestOlderIndexStaysRefusedUntilItIsRebuilt(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "meetcrawl.db")
@@ -145,18 +145,29 @@ func TestOlderIndexIsRefusedReadOnlyAndUpgradedOnOpen(t *testing.T) {
 	}
 	db.Close()
 
-	if _, err := archive.OpenReadOnly(ctx, path); err == nil || !strings.Contains(err.Error(), "run meetcrawl index") {
-		t.Fatalf("OpenReadOnly(v1 index) = %v, want a run meetcrawl index hint", err)
+	refused := func(when string) {
+		t.Helper()
+		if _, err := archive.OpenReadOnly(ctx, path); err == nil || !strings.Contains(err.Error(), "run meetcrawl index") {
+			t.Fatalf("OpenReadOnly %s = %v, want a run meetcrawl index hint", when, err)
+		}
 	}
+	refused("on a v1 index")
 
+	// meetcrawl status and search open the store for writing. That must not
+	// make the old rows look current.
 	store, err := archive.Open(ctx, path)
 	if err != nil {
-		t.Fatalf("Open(v1 index) = %v, want the missing columns added", err)
+		t.Fatalf("Open(v1 index) = %v", err)
+	}
+	refused("after a write open")
+
+	if err := store.ReplaceIndex(ctx, nil, nil, time.Now()); err != nil {
+		t.Fatalf("ReplaceIndex(v1 index) = %v, want the missing columns added", err)
 	}
 	store.Close()
 	ro, err := archive.OpenReadOnly(ctx, path)
 	if err != nil {
-		t.Fatalf("OpenReadOnly after Open = %v", err)
+		t.Fatalf("OpenReadOnly after the rebuild = %v", err)
 	}
 	ro.Close()
 }

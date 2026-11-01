@@ -68,10 +68,6 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := ensureColumns(ctx, inner.DB()); err != nil {
-		_ = inner.Close()
-		return nil, err
-	}
 	if err := state.EnsureSchema(ctx, inner.DB()); err != nil {
 		_ = inner.Close()
 		return nil, err
@@ -102,6 +98,12 @@ func (s *Store) DB() *sql.DB {
 
 func (s *Store) ReplaceIndex(ctx context.Context, meetings []MeetingRecord, contents []ContentRecord, finishedAt time.Time) error {
 	return s.inner.WithTx(ctx, func(tx *sql.Tx) error {
+		// An older index gains its columns here, in the same transaction that
+		// refills every row, so a read-only open never sees columns that the
+		// rows were not rebuilt for.
+		if err := ensureColumns(ctx, tx); err != nil {
+			return err
+		}
 		for _, table := range []string{"content_sources", "meeting_fidelities", "meeting_contents", "meetings"} {
 			if _, err := tx.ExecContext(ctx, "delete from "+table); err != nil {
 				return err
@@ -194,7 +196,13 @@ values (?, ?, ?, ?)
 	})
 }
 
-func ensureColumns(ctx context.Context, db *sql.DB) error {
+// sqlRunner is the part of *sql.DB and *sql.Tx that ensureColumns needs.
+type sqlRunner interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+func ensureColumns(ctx context.Context, db sqlRunner) error {
 	for _, add := range addedColumns {
 		has, err := hasColumn(ctx, db, add.table, add.column)
 		if err != nil {
@@ -210,7 +218,7 @@ func ensureColumns(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-func hasColumn(ctx context.Context, db *sql.DB, table, column string) (bool, error) {
+func hasColumn(ctx context.Context, db sqlRunner, table, column string) (bool, error) {
 	rows, err := db.QueryContext(ctx, fmt.Sprintf("pragma table_info(%s)", table))
 	if err != nil {
 		return false, err

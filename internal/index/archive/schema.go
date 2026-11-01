@@ -79,7 +79,8 @@ create table if not exists index_runs (
 const SchemaVersion = 2
 
 // addedColumns lists columns added after version 1. create table if not exists
-// leaves an older index without them, so Open adds them.
+// leaves an older index without them, so ReplaceIndex adds them while it
+// rebuilds the rows, and OpenReadOnly refuses an index that lacks them.
 var addedColumns = []struct{ table, column, ddl string }{
 	{"content_sources", "window_start", "text not null default ''"},
 	{"content_sources", "window_end", "text not null default ''"},

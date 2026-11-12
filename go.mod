@@ -7,7 +7,7 @@ require (
 	github.com/openclaw/crawlkit v0.17.3
 	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/zalando/go-keyring v0.2.8
-	golang.org/x/oauth2 v0.37.0
+	golang.org/x/oauth2 v0.38.0
 	google.golang.org/api v0.308.0
 	modernc.org/sqlite v1.61.0
 )
